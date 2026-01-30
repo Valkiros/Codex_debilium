@@ -8,9 +8,10 @@ interface ArmesTableProps {
     onItemsChange: (items: Equipement[]) => void;
     referenceOptions: RefEquipement[];
     defaultItem?: Partial<Equipement>;
+    characterForce: number;
 }
 
-export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem }) => {
+export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem, characterForce }) => {
 
     const handleAddRow = () => {
         const newItem: Equipement = {
@@ -58,7 +59,8 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
                         degats_pr: refItem.degats_pr,
                         // Attempt to extract rupture/details from raw if standard fields don't have it
                         rupture: refItem.rupture || refItem.raw.details?.rupture || '',
-                        description: refItem.description
+                        description: refItem.description,
+                        char_values: refItem.raw.caracteristiques // Copy base characteristics
                     };
                 }
                 return item;
@@ -193,72 +195,78 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
                         </tr>
                     </thead>
                     <tbody className="text-ink">
-                        {items.map((item, index) => (
-                            <tr key={item.id} className="border-b border-leather-light/30 hover:bg-leather/5">
-                                <td className="p-2 font-bold text-leather-dark">A{index + 1}</td>
-                                <td className="p-2 text-xs text-ink-light">{item.refId || '-'}</td>
-                                <td className="p-2 text-sm italic">{(() => {
-                                    const r = referenceOptions.find(o => o.id === item.refId);
-                                    return r?.item_type || getRefCategory(item.refId) || item.equipement_type;
-                                })()}</td>
-                                <td className="p-2 w-48 max-w-[12rem]">
-                                    <SearchableSelect
-                                        options={referenceOptions.map(r => ({ id: r.id, label: r.nom }))}
-                                        value={item.refId}
-                                        onChange={(val) => handleSelectChange(item.id, val)}
-                                        className="w-full"
-                                    />
-                                </td>
-                                <td className="p-2">
-                                    {/* Display Dice + Base PI (e.g. "1D + 3") */}
-                                    {(() => {
-                                        const pi = getRefPi(item.refId);
-                                        const dice = item.degats_pr;
-                                        if (pi > 0 && dice) return `${dice} + ${pi}`;
-                                        if (pi < 0 && dice) return `${dice} - ${Math.abs(pi)}`;
-                                        if (pi !== 0 && !dice) return `${pi}`;
-                                        return dice;
-                                    })()}
-                                </td>
-                                <td className="p-2">
-                                    <input
-                                        type="text"
-                                        value={item.modif_pi || ''}
-                                        onChange={(e) => handleUpdateField(item.id, 'modif_pi', e.target.value)}
-                                        className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
-                                        placeholder="+0"
-                                    />
-                                </td>
-                                <td className="p-2 text-center text-ink-light">
-                                    {/* Placeholder for now as requester said "On en reparlera plus tard" */}
-                                    {item.bonus_fo || 0}
-                                </td>
-                                <td className="p-2 font-bold text-leather">
-                                    {calculateTotal(item.degats_pr, getRefPi(item.refId), item.modif_pi || '', item.bonus_fo || 0)}
-                                </td>
-                                <td className="p-2">{getRefRupture(item.refId) || '-'}</td>
-                                <td className="p-2">
-                                    <input
-                                        type="text"
-                                        value={item.modif_rupture || ''}
-                                        onChange={(e) => handleUpdateField(item.id, 'modif_rupture', e.target.value)}
-                                        className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
-                                        placeholder="+0"
-                                    />
-                                </td>
-                                <td className="p-2 text-sm max-w-[150px] truncate" title={getRefDescription(item.refId)}>
-                                    {getRefDescription(item.refId) || ''}
-                                </td>
-                                <td className="p-2 text-center">
-                                    <button
-                                        onClick={() => handleRemoveRow(item.id)}
-                                        className="text-red-600 hover:text-red-800 font-bold"
-                                    >
-                                        &times;
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                        {items.map((item, index) => {
+                            // Calculate Bonus FO
+                            const itemForceBonus = item.char_values?.force || 0;
+                            const totalForce = characterForce + itemForceBonus;
+                            const bonusFo = Math.max(0, totalForce - 12);
+
+                            return (
+                                <tr key={item.id} className="border-b border-leather-light/30 hover:bg-leather/5">
+                                    <td className="p-2 font-bold text-leather-dark">A{index + 1}</td>
+                                    <td className="p-2 text-xs text-ink-light">{item.refId || '-'}</td>
+                                    <td className="p-2 text-sm italic">{(() => {
+                                        const r = referenceOptions.find(o => o.id === item.refId);
+                                        return r?.item_type || getRefCategory(item.refId) || item.equipement_type;
+                                    })()}</td>
+                                    <td className="p-2 w-48 max-w-[12rem]">
+                                        <SearchableSelect
+                                            options={referenceOptions.map(r => ({ id: r.id, label: r.nom }))}
+                                            value={item.refId}
+                                            onChange={(val) => handleSelectChange(item.id, val)}
+                                            className="w-full"
+                                        />
+                                    </td>
+                                    <td className="p-2">
+                                        {/* Display Dice + Base PI (e.g. "1D + 3") */}
+                                        {(() => {
+                                            const pi = getRefPi(item.refId);
+                                            const dice = item.degats_pr;
+                                            if (pi > 0 && dice) return `${dice} + ${pi}`;
+                                            if (pi < 0 && dice) return `${dice} - ${Math.abs(pi)}`;
+                                            if (pi !== 0 && !dice) return `${pi}`;
+                                            return dice;
+                                        })()}
+                                    </td>
+                                    <td className="p-2">
+                                        <input
+                                            type="text"
+                                            value={item.modif_pi || ''}
+                                            onChange={(e) => handleUpdateField(item.id, 'modif_pi', e.target.value)}
+                                            className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
+                                            placeholder="+0"
+                                        />
+                                    </td>
+                                    <td className="p-2 text-center text-ink-light font-mono">
+                                        {bonusFo > 0 ? `+${bonusFo}` : '0'}
+                                    </td>
+                                    <td className="p-2 font-bold text-leather">
+                                        {calculateTotal(item.degats_pr, getRefPi(item.refId), item.modif_pi || '', bonusFo)}
+                                    </td>
+                                    <td className="p-2">{getRefRupture(item.refId) || '-'}</td>
+                                    <td className="p-2">
+                                        <input
+                                            type="text"
+                                            value={item.modif_rupture || ''}
+                                            onChange={(e) => handleUpdateField(item.id, 'modif_rupture', e.target.value)}
+                                            className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
+                                            placeholder="+0"
+                                        />
+                                    </td>
+                                    <td className="p-2 text-sm max-w-[150px] truncate" title={getRefDescription(item.refId)}>
+                                        {getRefDescription(item.refId) || ''}
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <button
+                                            onClick={() => handleRemoveRow(item.id)}
+                                            className="text-red-600 hover:text-red-800 font-bold"
+                                        >
+                                            &times;
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

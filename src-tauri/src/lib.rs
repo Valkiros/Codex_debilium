@@ -38,7 +38,8 @@ pub fn run() {
             commands::get_all_personnages,
             commands::get_personnage,
             commands::create_personnage,
-            commands::delete_personnage
+            commands::delete_personnage,
+            commands::import_personnage
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

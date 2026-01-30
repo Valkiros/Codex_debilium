@@ -60,7 +60,8 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
                         modif_pr_sol: '',
                         modif_pr_spe: '',
                         modif_pr_mag: '',
-                        modif_rupture: ''
+                        modif_rupture: '',
+                        char_values: refItem.raw.caracteristiques // Copy base characteristics
                     };
                 }
                 return item;

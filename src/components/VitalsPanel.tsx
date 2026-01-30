@@ -42,7 +42,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange }) =>
                     <label className="text-[10px] uppercase opacity-70">Actuel</label>
                     <input
                         type="number"
-                        value={data.current}
+                        value={data.current || ''}
                         onChange={(e) => handleValueMaxChange(category, 'current', e.target.value)}
                         className="bg-white/50 border border-leather/30 rounded px-1 w-full text-center"
                     />
@@ -51,7 +51,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange }) =>
                     <label className="text-[10px] uppercase opacity-70">Max</label>
                     <input
                         type="number"
-                        value={data.max}
+                        value={data.max || ''}
                         onChange={(e) => handleValueMaxChange(category, 'max', e.target.value)}
                         className="bg-white/50 border border-leather/30 rounded px-1 w-full text-center"
                     />
@@ -60,7 +60,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange }) =>
                     <label className="text-[10px] uppercase opacity-70">Add.</label>
                     <input
                         type="number"
-                        value={data.temp}
+                        value={data.temp || ''}
                         onChange={(e) => handleValueMaxChange(category, 'temp', e.target.value)}
                         className="bg-white/50 border border-leather/30 rounded px-1 w-full text-center"
                     />
@@ -94,7 +94,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange }) =>
                         <label className="text-[10px] uppercase opacity-70">Actuel</label>
                         <input
                             type="number"
-                            value={vitals.corruption.current}
+                            value={vitals.corruption.current || ''}
                             onChange={(e) => handleCorruptionChange('current', e.target.value)}
                             className="bg-white/50 border border-leather/30 rounded px-1 w-full text-center"
                         />
@@ -103,7 +103,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange }) =>
                         <label className="text-[10px] uppercase opacity-70">Par Jour</label>
                         <input
                             type="number"
-                            value={vitals.corruption.daily}
+                            value={vitals.corruption.daily || ''}
                             onChange={(e) => handleCorruptionChange('daily', e.target.value)}
                             className="bg-white/50 border border-leather/30 rounded px-1 w-full text-center"
                         />

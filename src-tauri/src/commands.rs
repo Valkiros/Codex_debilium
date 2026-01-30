@@ -19,6 +19,7 @@ pub struct RefEquipement {
     pub pr_spe: i32,       // New
     pub item_type: String, // New field
     pub description: String,
+    pub caracteristiques: serde_json::Value, // New field
     pub details: serde_json::Value,
 }
 
@@ -27,11 +28,15 @@ pub fn get_ref_equipements(state: State<AppState>) -> Result<Vec<RefEquipement>,
     let db = state.db.lock().map_err(|_| "Failed to acquire lock")?;
 
     let mut stmt = db
-        .prepare("SELECT id, category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description FROM ref_equipements ORDER BY category, nom")
+        .prepare("SELECT id, category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracteristiques FROM ref_equipements ORDER BY category, nom")
         .map_err(|e| e.to_string())?;
 
     let items = stmt
         .query_map([], |row| {
+            let caracs_str: String = row.get(12).unwrap_or("{}".to_string());
+            let caracs_json: serde_json::Value =
+                serde_json::from_str(&caracs_str).unwrap_or(serde_json::json!({}));
+
             Ok(RefEquipement {
                 id: row.get(0)?,
                 category: row.get(1)?,
@@ -45,6 +50,7 @@ pub fn get_ref_equipements(state: State<AppState>) -> Result<Vec<RefEquipement>,
                 pr_spe: row.get(9)?,
                 item_type: row.get(10)?,
                 description: row.get(11)?,
+                caracteristiques: caracs_json,
                 details: serde_json::Value::Null,
             })
         })
@@ -197,6 +203,25 @@ pub fn delete_personnage(id: String, state: State<AppState>) -> Result<(), Strin
 
     db.execute("DELETE FROM personnages WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn import_personnage(
+    id: String,
+    name: String,
+    data: String, // JSON string
+    updated_at: String,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+
+    db.execute(
+        "INSERT OR REPLACE INTO personnages (id, name, data, updated_at) VALUES (?1, ?2, ?3, ?4)",
+        params![id, name, data, updated_at],
+    )
+    .map_err(|e| e.to_string())?;
 
     Ok(())
 }

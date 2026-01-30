@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { CharacterHeader } from './CharacterHeader';
-import { VitalsPanel } from './VitalsPanel';
 import { GeneralStatsPanel } from './GeneralStatsPanel';
 import { DefensePanel } from './DefensePanel';
 import { MagicStealthPanel } from './MagicStealthPanel';
@@ -53,16 +52,16 @@ const INITIAL_DATA: CharacterData = {
         discretion: { base: 0, temp: 0 }
     },
     characteristics: {
-        courage: { t1: 0, t2: 0, t3: 0 },
-        intelligence: { t1: 0, t2: 0, t3: 0 },
-        charisme: { t1: 0, t2: 0, t3: 0 },
-        adresse: { t1: 0, t2: 0, t3: 0 },
-        force: { t1: 0, t2: 0, t3: 0 },
-        perception: { t1: 0, t2: 0, t3: 0 },
-        esquive: { t1: 0, t2: 0, t3: 0 },
-        attaque: { t1: 0, t2: 0, t3: 0 },
-        parade: { t1: 0, t2: 0, t3: 0 },
-        degats: { t1: 0, t2: 0, t3: 0 }
+        courage: { naturel: 0, t1: 0, t2: 0, t3: 0 },
+        intelligence: { naturel: 0, t1: 0, t2: 0, t3: 0 },
+        charisme: { naturel: 0, t1: 0, t2: 0, t3: 0 },
+        adresse: { naturel: 0, t1: 0, t2: 0, t3: 0 },
+        force: { naturel: 0, t1: 0, t2: 0, t3: 0 },
+        perception: { naturel: 0, t1: 0, t2: 0, t3: 0 },
+        esquive: { naturel: 0, t1: 0, t2: 0, t3: 0 },
+        attaque: { naturel: 0, t1: 0, t2: 0, t3: 0 },
+        parade: { naturel: 0, t1: 0, t2: 0, t3: 0 },
+        degats: { naturel: 0, t1: 0, t2: 0, t3: 0 }
     },
     temp_modifiers: {
         mod1: '',
@@ -75,6 +74,20 @@ const INITIAL_DATA: CharacterData = {
 export const CharacterSheet: React.FC<CharacterSheetProps> = ({ characterId }) => {
     const [data, setData] = useState<CharacterData>(INITIAL_DATA);
     const [loading, setLoading] = useState(true);
+    const [refs, setRefs] = useState<any[]>([]); // Using any[] temporarily for RefEquipement as it's not imported yet, will import
+
+    useEffect(() => {
+        // Fetch Refs
+        const fetchRefs = async () => {
+            try {
+                const refData = await invoke('get_ref_equipements') as any[];
+                setRefs(refData);
+            } catch (err) {
+                console.error("Failed to fetch equipment refs:", err);
+            }
+        };
+        fetchRefs();
+    }, []);
 
     useEffect(() => {
         if (!characterId) return;
@@ -82,16 +95,9 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ characterId }) =
         invoke<any>('get_personnage', { id: characterId })
             .then(char => {
                 if (char && char.data) {
-                    // Start with initial data and merge saved data over it
-                    // This ensures new fields are present if loaded data is old
                     const mergedData = {
                         ...INITIAL_DATA,
                         ...char.data,
-                        // Deep merge specific sections if needed, or rely on ...spread if structure is flat enough at top level
-                        // For recursive safety, we might need deeper merge, but for now spread is okay 
-                        // assuming 'data' structure matches 'CharacterData' top keys.
-                        // But for nested objects like 'vitals.pv', shallow merge of 'vitals' might overwrite new fields if 'char.data.vitals' is partial.
-                        // Let's do a slightly safer merge for main sections.
                         identity: { ...INITIAL_DATA.identity, ...(char.data.identity || {}) },
                         vitals: { ...INITIAL_DATA.vitals, ...(char.data.vitals || {}) },
                         general: { ...INITIAL_DATA.general, ...(char.data.general || {}) },
@@ -115,11 +121,8 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ characterId }) =
     const [activeTab, setActiveTab] = useState<'fiche' | 'equipement'>('fiche');
 
     // Computed Values for Characteristics Table
-    // Scan inventory for items that boost characteristics. 
-    // Currently, our 'Equipement' struct has 'esquive_bonus'. 
-    // If we want to support other stats, we need to look at 'raw.details' or similar.
-    // For now, let's just map 'esquive' since it's the only explicitly typed bonus.
-    // TODO: Expand backend/types to support generic stat bonuses on equipment.
+    // The "Equipé" column now represents the TOTAL Value for each characteristic
+    // Formula: Naturel + T1 + T2 + T3 + (Armor/Accessory Bonuses) - Malus Tête
 
     const calculateEquippedValues = () => {
         const values: Record<keyof Characteristics, number> = {
@@ -127,10 +130,36 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ characterId }) =
             perception: 0, esquive: 0, attaque: 0, parade: 0, degats: 0
         };
 
+        // Initialize with Base values (Naturel + Temp - Malus)
+        (Object.keys(values) as Array<keyof Characteristics>).forEach((key) => {
+            const char = data.characteristics[key];
+            const base = (char.naturel || 0) + (char.t1 || 0) + (char.t2 || 0) + (char.t3 || 0);
+            values[key] = base - (data.general.malus_tete || 0);
+        });
+
+        // Add Inventory Bonuses (excluding Weapons/Unarmed which have their own columns)
         data.inventory.forEach((item: Equipement) => {
             if (item.equipe) {
-                values.esquive += item.esquive_bonus || 0;
-                // Add calculation for other stats here when data model supports it
+                // Filter for Protections (Armure) and Accessoires (Autre/Sac?)
+                // Explicitly exclude weapons
+                if (item.equipement_type !== 'Arme' && item.equipement_type !== 'MainsNues') {
+
+                    // Add generic char_values
+                    if (item.char_values) {
+                        Object.entries(item.char_values).forEach(([key, val]) => {
+                            // Normalize key to lowercase to match 'force', 'adresse' etc.
+                            const normalizedKey = key.toLowerCase();
+                            if (normalizedKey in values) {
+                                values[normalizedKey as keyof Characteristics] += val;
+                            }
+                        });
+                    }
+
+                    // Add hardcoded bonuses (currently only esquive_bonus is standard)
+                    if (item.esquive_bonus) {
+                        values.esquive += item.esquive_bonus;
+                    }
+                }
             }
         });
 
@@ -139,6 +168,139 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ characterId }) =
 
     const equippedValues = calculateEquippedValues();
 
+    // Calculate Total Protections (Base) from Inventory
+    // Protection Solide = pr_sol (toutes protections) + modif_pr_sol (toutes protections) + pr_sol (tous accessoires) + modif_pr_sol (tous les accessoires)
+    // Same for Spéciale and Magique
+    // Discretion = Adresse Naturelle + Bonus Discretion (from items)
+    // Magie Physique = Moyenne Sup(Int + Adr) + Bonus
+    // Magie Psychique = Moyenne Sup(Int + Cha) + Bonus
+    // Resistance Magique = Moyenne Sup(Cour + Int + For) + Bonus
+    const calculateComputedStats = () => {
+        const totals = {
+            solide: { value: 0, details: { formula: "Protections + Accessoires", components: [] as any[], total: 0 } },
+            speciale: { value: 0, details: { formula: "Protections + Accessoires", components: [] as any[], total: 0 } },
+            magique: { value: 0, details: { formula: "Protections + Accessoires", components: [] as any[], total: 0 } },
+
+            // For these, we want detailed structure:
+            discretion: { value: 0, details: { formula: "Adresse Naturelle + Objets", components: [] as any[], total: 0 } },
+            magie_physique: { value: 0, details: { formula: "Moyenne sup. (Intelligence + Adresse) + Objets", components: [] as any[], total: 0 } },
+            magie_psychique: { value: 0, details: { formula: "Moyenne sup. (Intelligence + Charisme) + Objets", components: [] as any[], total: 0 } },
+            resistance_magique: { value: 0, details: { formula: "Moyenne sup. (Courage + Intelligence + Force) + Objets", components: [] as any[], total: 0 } }
+        };
+
+        // 1. Add Natural Address for Discretion Base
+        const adrNat = (data.characteristics.adresse.naturel || 0);
+        totals.discretion.value += adrNat;
+        totals.discretion.details.components.push({ label: 'Adresse (Naturelle)', value: adrNat });
+
+        // 2. Add Base Stats for Magic (Moyenne Arrondi Supérieur)
+        // Magie Physique: Int + Adr
+        const int = equippedValues.intelligence;
+        const adr = equippedValues.adresse;
+        const baseMagPhy = Math.ceil((int + adr) / 2);
+        totals.magie_physique.value += baseMagPhy;
+        totals.magie_physique.details.components.push({ label: `Moyenne (Int ${int} + Adr ${adr})`, value: baseMagPhy });
+
+        // Magie Psychique: Int + Cha
+        const cha = equippedValues.charisme;
+        const baseMagPsy = Math.ceil((int + cha) / 2);
+        totals.magie_psychique.value += baseMagPsy;
+        totals.magie_psychique.details.components.push({ label: `Moyenne (Int ${int} + Cha ${cha})`, value: baseMagPsy });
+
+        // Resistance Magique: Cour + Int + For
+        const cour = equippedValues.courage;
+        const force = equippedValues.force;
+        const baseResMag = Math.ceil((cour + int + force) / 3);
+        totals.resistance_magique.value += baseResMag;
+        totals.resistance_magique.details.components.push({ label: `Moyenne (Cour ${cour} + Int ${int} + For ${force})`, value: baseResMag });
+
+
+        data.inventory.forEach(item => {
+            // Only consider equipped items
+            if (!item.equipe) return;
+            // Only protections and accessories
+            if (item.equipement_type === 'Armure' || item.equipement_type === 'Autre') {
+
+                const refItem = refs.find(r => r.id === item.refId);
+                // Solide Base comes from degats_pr (Protection) for Armors, not PI
+                const baseSol = parseInt(refItem?.degats_pr || '0') || 0;
+                const baseSpe = refItem?.pr_spe || 0; // Speciale Base
+                const baseMag = refItem?.pr_mag || 0; // Magique Base
+
+                // Modifiers
+                const modSol = parseInt(item.modif_pr_sol || '0') || 0;
+
+                const modSpe = parseInt(item.modif_pr_spe || '0') || 0;
+                const modMag = parseInt(item.modif_pr_mag || '0') || 0;
+
+                const valSol = baseSol + modSol;
+                const valSpe = baseSpe + modSpe;
+                const valMag = baseMag + modMag;
+
+                if (valSol !== 0) {
+                    totals.solide.value += valSol;
+                    totals.solide.details.components.push({ label: item.nom, value: valSol });
+                }
+                if (valSpe !== 0) {
+                    totals.speciale.value += valSpe;
+                    totals.speciale.details.components.push({ label: item.nom, value: valSpe });
+                }
+                if (valMag !== 0) {
+                    totals.magique.value += valMag;
+                    totals.magique.details.components.push({ label: item.nom, value: valMag });
+                }
+
+                // Check char_values for Discretion and Magic Bonuses
+                if (item.char_values) {
+                    // Discretion
+                    const discKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'discretion' || k.toLowerCase() === 'discrétion');
+                    if (discKey) {
+                        const val = item.char_values[discKey] || 0;
+                        totals.discretion.value += val;
+                        totals.discretion.details.components.push({ label: item.nom, value: val });
+                    }
+
+                    // Magie Physique (mag_phy)
+                    const magPhyKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'mag_phy' || k.toLowerCase() === 'magie_physique');
+                    if (magPhyKey) {
+                        const val = item.char_values[magPhyKey] || 0;
+                        totals.magie_physique.value += val;
+                        totals.magie_physique.details.components.push({ label: item.nom, value: val });
+                    }
+
+                    // Magie Psychique (mag_psy)
+                    const magPsyKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'mag_psy' || k.toLowerCase() === 'magie_psychique');
+                    if (magPsyKey) {
+                        const val = item.char_values[magPsyKey] || 0;
+                        totals.magie_psychique.value += val;
+                        totals.magie_psychique.details.components.push({ label: item.nom, value: val });
+                    }
+
+                    // Resistance Magique (rm)
+                    const rmKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'rm' || k.toLowerCase() === 'resistance_magique' || k.toLowerCase() === 'résistance_magique');
+                    if (rmKey) {
+                        const val = item.char_values[rmKey] || 0;
+                        totals.resistance_magique.value += val;
+                        totals.resistance_magique.details.components.push({ label: item.nom, value: val });
+                    }
+                }
+            }
+        });
+
+        // Set totals in details
+        totals.solide.details.total = totals.solide.value;
+        totals.speciale.details.total = totals.speciale.value;
+        totals.magique.details.total = totals.magique.value;
+        totals.discretion.details.total = totals.discretion.value;
+        totals.magie_physique.details.total = totals.magie_physique.value;
+        totals.magie_psychique.details.total = totals.magie_psychique.value;
+        totals.resistance_magique.details.total = totals.resistance_magique.value;
+
+        return totals;
+    };
+
+    const computedStats = calculateComputedStats();
+
     if (loading) {
         return <div className="p-8 text-center text-leather">Chargement de la feuille de personnage...</div>;
     }
@@ -146,8 +308,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ characterId }) =
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-20">
             <CharacterHeader
+                characterId={characterId}
+                characterData={data}
                 identity={data.identity}
-                onChange={(identity) => setData({ ...data, identity })}
+                vitals={data.vitals}
+                onIdentityChange={(identity) => setData({ ...data, identity })}
+                onVitalsChange={(vitals) => setData({ ...data, vitals })}
             />
 
             {/* Tab Navigation */}
@@ -168,38 +334,70 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ characterId }) =
 
             {activeTab === 'fiche' && (
                 <div className="space-y-6 animate-fade-in">
-                    <VitalsPanel
-                        vitals={data.vitals}
-                        onChange={(vitals) => setData({ ...data, vitals })}
-                    />
 
+                    {/* Updates: Moved Characteristics below, others in a top grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-6">
                             <GeneralStatsPanel
                                 stats={data.general}
-                                onChange={(general) => setData({ ...data, general })}
-                            />
-                            <DefensePanel
-                                defenses={data.defenses}
-                                movement={data.movement}
-                                onDefenseChange={(defenses) => setData({ ...data, defenses })}
-                                onMovementChange={(movement) => setData({ ...data, movement })}
+                                onChange={(general) => {
+                                    // Auto-calculate level based on XP
+                                    // Formula: XP = 50 * level * (level - 1)
+                                    // Inverse: Level = floor((1 + sqrt(1 + 4 * (xp / 50))) / 2)
+                                    const xp = general.experience || 0;
+                                    const calculatedLevel = Math.floor((1 + Math.sqrt(1 + 4 * (xp / 50))) / 2);
+                                    const newLevel = Math.max(1, calculatedLevel);
+
+                                    setData({
+                                        ...data,
+                                        general: {
+                                            ...general,
+                                            niveau: newLevel
+                                        }
+                                    });
+                                }}
                             />
                             <MagicStealthPanel
                                 stats={data.magic}
+                                computedMagic={{
+                                    magie_physique: computedStats.magie_physique,
+                                    magie_psychique: computedStats.magie_psychique,
+                                    resistance_magique: computedStats.resistance_magique
+                                }}
                                 onChange={(magic) => setData({ ...data, magic })}
                             />
                         </div>
-
-                        <div>
-                            <CharacteristicsPanel
-                                characteristics={data.characteristics}
-                                equippedValues={equippedValues}
-                                onChange={(characteristics) => setData({ ...data, characteristics })}
+                        <div className="space-y-6">
+                            <DefensePanel
+                                defenses={data.defenses}
+                                movement={data.movement}
+                                magic={data.magic}
+                                computedDefenses={{
+                                    solide: computedStats.solide,
+                                    speciale: computedStats.speciale,
+                                    magique: computedStats.magique
+                                }}
+                                computedDiscretion={computedStats.discretion}
+                                onDefenseChange={(defenses) => setData({ ...data, defenses })}
+                                onMovementChange={(movement) => setData({ ...data, movement })}
+                                onMagicChange={(magic) => setData({ ...data, magic })}
                             />
                         </div>
                     </div>
 
+                    {/* Characteristics - Full Width */}
+                    <div>
+                        <CharacteristicsPanel
+                            characteristics={data.characteristics}
+                            equippedValues={equippedValues}
+                            inventory={data.inventory}
+                            referenceOptions={refs}
+                            onChange={(characteristics) => setData({ ...data, characteristics })}
+                            onInventoryChange={(inventory) => setData({ ...data, inventory })}
+                        />
+                    </div>
+
+                    {/* Temp Modifiers - Bottom */}
                     <TempModifiersPanel
                         modifiers={data.temp_modifiers}
                         onChange={(temp_modifiers) => setData({ ...data, temp_modifiers })}
@@ -212,6 +410,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ characterId }) =
                     <Inventory
                         inventory={data.inventory}
                         onInventoryChange={(inventory) => setData({ ...data, inventory })}
+                        characterForce={equippedValues.force}
                     />
                 </div>
             )}

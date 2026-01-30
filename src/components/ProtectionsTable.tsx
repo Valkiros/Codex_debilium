@@ -58,7 +58,8 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                         degats_pr: refItem.degats_pr, // This is PR Sol for armors
                         // Attempts to extract rupture/details from raw if standard fields don't have it
                         rupture: refItem.rupture || refItem.raw.details?.rupture || '',
-                        description: refItem.description
+                        description: refItem.description,
+                        char_values: refItem.raw.caracteristiques // Copy base characteristics
                     };
                 }
                 return item;

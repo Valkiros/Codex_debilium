@@ -48,8 +48,9 @@ export interface Equipement {
     // Protection specific mods
     modif_pr_sol?: string;
     modif_pr_mag?: string;
-    modif_pr_spe?: string;
+    modif_pr_spe?: string; // Kept (V5)
     description?: string; // Storing description locally/cache
+    char_values?: Record<string, number>; // Bonus/Value for specific characteristics (courage, force, etc.) linked to this item
 }
 
 export interface BaseStats {
@@ -133,6 +134,7 @@ export interface MagicStealth {
 }
 
 export interface CharacteristicColumn {
+    naturel: number;
     t1: number;
     t2: number;
     t3: number;
@@ -173,4 +175,15 @@ export interface CharacterSummary {
     id: string;
     name: string;
     updated_at: string;
+}
+
+export interface StatComponent {
+    label: string;
+    value: number;
+}
+
+export interface StatDetail {
+    formula: string;
+    components: StatComponent[];
+    total: number;
 }

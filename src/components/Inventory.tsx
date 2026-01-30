@@ -10,9 +10,10 @@ import { v4 as uuidv4 } from 'uuid';
 interface InventoryProps {
     inventory: Equipement[];
     onInventoryChange: (items: Equipement[]) => void;
+    characterForce: number;
 }
 
-export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChange }) => {
+export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChange, characterForce }) => {
     const [refs, setRefs] = useState<RefEquipement[]>([]);
 
     // Derived state for sections
@@ -160,6 +161,7 @@ export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChan
                     onItemsChange={(items) => updateSection(items, 'MainsNues')}
                     referenceOptions={refs.filter(r => r.category === 'Mains_nues' || r.category === 'Main nue')}
                     defaultItem={{ nom: 'Main nue' }}
+                    characterForce={characterForce}
                 />
 
                 <div className="grid grid-cols-1 gap-8">
@@ -169,6 +171,7 @@ export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChan
                         onItemsChange={(items) => updateSection(items, 'Armes')}
                         referenceOptions={refs.filter(r => r.category === 'Armes')}
                         defaultItem={{ equipement_type: 'Arme' }}
+                        characterForce={characterForce}
                     />
 
                     <ProtectionsTable

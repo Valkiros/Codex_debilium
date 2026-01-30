@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { CharacterSummary } from "../types";
+import { supabase } from "../lib/supabase";
 
 interface CharacterSelectionProps {
     onSelect: (id: string) => void;
@@ -11,6 +12,7 @@ export function CharacterSelection({ onSelect, onLogout }: CharacterSelectionPro
     const [characters, setCharacters] = useState<CharacterSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'info' | 'error' } | null>(null);
 
     useEffect(() => {
         loadCharacters();
@@ -29,6 +31,11 @@ export function CharacterSelection({ onSelect, onLogout }: CharacterSelectionPro
         }
     };
 
+    const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full text-leather">
@@ -38,7 +45,18 @@ export function CharacterSelection({ onSelect, onLogout }: CharacterSelectionPro
     }
 
     return (
-        <div className="flex flex-col h-full p-8 max-w-4xl mx-auto">
+        <div className="flex flex-col h-full p-8 max-w-4xl mx-auto relative">
+            {toast && (
+                <div className={`fixed top-4 right-4 px-6 py-4 rounded shadow-xl z-50 animate-bounce flex items-center gap-2 font-bold
+                    ${toast.type === 'success' ? 'bg-green-700 text-white' : ''}
+                    ${toast.type === 'error' ? 'bg-red-700 text-white' : ''}
+                    ${toast.type === 'info' ? 'bg-blue-700 text-white' : ''}`
+                }>
+                    <span>{toast.type === 'success' ? '✅' : toast.type === 'error' ? '❌' : 'ℹ️'}</span>
+                    {toast.message}
+                </div>
+            )}
+
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-3xl font-bold text-leather">Choix du Personnage</h2>
                 <button
@@ -135,6 +153,43 @@ export function CharacterSelection({ onSelect, onLogout }: CharacterSelectionPro
                         className="px-6 py-3 bg-leather text-parchment font-bold rounded hover:bg-leather-dark transition-colors"
                     >
                         Rapide
+                    </button>
+                    <button
+                        onClick={async () => {
+                            try {
+                                setLoading(true);
+                                // 1. Fetch from Supabase
+                                const { data: cloudChars, error } = await supabase
+                                    .from('personnages')
+                                    .select('*');
+
+                                if (error) throw error;
+
+                                if (!cloudChars || cloudChars.length === 0) {
+                                    showToast("Aucun personnage trouvé sur le Cloud.", 'info');
+                                } else {
+                                    // 2. Import each into Local SQLite
+                                    for (const char of cloudChars) {
+                                        await invoke("import_personnage", {
+                                            id: char.id,
+                                            name: char.nom,
+                                            data: JSON.stringify(char.data),
+                                            updatedAt: char.updated_at
+                                        });
+                                    }
+                                    // 3. Refresh list
+                                    await loadCharacters();
+                                    showToast(`${cloudChars.length} personnage(s) importé(s) !`, 'success');
+                                }
+                            } catch (err: any) {
+                                setError(String(err.message || err));
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                        className="px-6 py-3 bg-blue-700 text-white font-bold rounded hover:bg-blue-800 transition-colors flex items-center gap-2"
+                    >
+                        <span>☁️</span> Importer du Cloud
                     </button>
                 </div>
             </div>

@@ -16,7 +16,7 @@ pub struct AppState {
 }
 
 pub fn init_db() -> Result<Connection> {
-    let conn = Connection::open("../game_data_v5.db")?;
+    let conn = Connection::open("../game_data_v7.db")?;
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS personnages (
@@ -41,7 +41,8 @@ pub fn init_db() -> Result<Connection> {
             pr_mag INTEGER DEFAULT 0,
             pr_spe INTEGER DEFAULT 0,
             item_type TEXT DEFAULT '',
-            description TEXT NOT NULL
+            description TEXT NOT NULL,
+            caracteristiques TEXT DEFAULT '{}'
         )",
         [],
     )?;

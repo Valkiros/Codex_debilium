@@ -20,6 +20,17 @@ struct SourceItem {
     item_type: Option<String>, // Captures "type" from JSON
     description: Option<String>,
     effet: Option<String>,
+    caracteristiques: Option<serde_json::Value>, // Support generic characteristics from JSON object
+
+    // Individual characteristics fields found in flat JSON
+    courage: Option<String>,
+    intelligence: Option<String>,
+    charisme: Option<String>,
+    adresse: Option<String>,
+    force: Option<String>,
+    perception: Option<String>,
+    attaque: Option<String>,
+    parade: Option<String>,
 }
 
 pub fn seed_reference_data(conn: &mut Connection, _app_handle: AppHandle) -> Result<(), String> {
@@ -94,10 +105,45 @@ pub fn seed_reference_data(conn: &mut Connection, _app_handle: AppHandle) -> Res
             let description = item.effet.unwrap_or_default();
             let item_type = item.item_type.unwrap_or_default();
 
+            // Construct characteristics JSON from individual fields
+            let mut caracs_map = serde_json::Map::new();
+
+            let char_fields = [
+                ("courage", &item.courage),
+                ("intelligence", &item.intelligence),
+                ("charisme", &item.charisme),
+                ("adresse", &item.adresse),
+                ("force", &item.force),
+                ("perception", &item.perception),
+                ("attaque", &item.attaque),
+                ("parade", &item.parade),
+            ];
+
+            for (key, val_opt) in char_fields {
+                if let Some(val_str) = val_opt {
+                    if let Ok(val) = val_str.trim().parse::<i32>() {
+                        if val != 0 {
+                            caracs_map
+                                .insert(key.to_string(), serde_json::Value::Number(val.into()));
+                        }
+                    }
+                }
+            }
+
+            // Merge with existing 'caracteristiques' object if present
+            if let Some(serde_json::Value::Object(obj)) = &item.caracteristiques {
+                for (k, v) in obj {
+                    caracs_map.insert(k.clone(), v.clone());
+                }
+            }
+
+            let caracs_json = serde_json::Value::Object(caracs_map);
+            let caracs_str = caracs_json.to_string();
+
             tx.execute(
-                "INSERT INTO ref_equipements (category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-                params![category, item.nom, poids_kg, pi_value, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description],
+                "INSERT INTO ref_equipements (category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracteristiques)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                params![category, item.nom, poids_kg, pi_value, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracs_str],
             ).map_err(|e| e.to_string())?;
         }
     }
