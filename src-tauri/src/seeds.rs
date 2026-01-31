@@ -6,11 +6,13 @@ use tauri::AppHandle; // Import AppHandle to access app-specific paths if needed
 
 #[derive(Deserialize, Debug)]
 struct SourceItem {
+    id: String, // Add ID field
     nom: String,
     poids: String, // Parsing needed
     esquive: Option<String>,
     degats: Option<String>,
     pi: Option<String>,
+    aura: Option<String>, // Added
     rupture: Option<String>,
     #[serde(alias = "pr_sol")]
     pr: Option<String>,
@@ -18,7 +20,6 @@ struct SourceItem {
     pr_spe: Option<String>, // ADD THIS
     #[serde(alias = "type")]
     item_type: Option<String>, // Captures "type" from JSON
-    description: Option<String>,
     effet: Option<String>,
     caracteristiques: Option<serde_json::Value>, // Support generic characteristics from JSON object
 
@@ -64,6 +65,7 @@ pub fn seed_reference_data(conn: &mut Connection, _app_handle: AppHandle) -> Res
         let items: Vec<SourceItem> = serde_json::from_str(&content).map_err(|e| e.to_string())?;
 
         for item in items {
+            let original_ref_id: i32 = item.id.trim().parse().unwrap_or(0);
             let poids_grammes: f32 = item.poids.parse().unwrap_or(0.0);
             let poids_kg = poids_grammes / 1000.0;
 
@@ -139,11 +141,12 @@ pub fn seed_reference_data(conn: &mut Connection, _app_handle: AppHandle) -> Res
 
             let caracs_json = serde_json::Value::Object(caracs_map);
             let caracs_str = caracs_json.to_string();
+            let aura = item.aura.unwrap_or_default();
 
             tx.execute(
-                "INSERT INTO ref_equipements (category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracteristiques)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-                params![category, item.nom, poids_kg, pi_value, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracs_str],
+                "INSERT INTO ref_equipements (category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracteristiques, original_ref_id, aura)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                params![category, item.nom, poids_kg, pi_value, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracs_str, original_ref_id, aura],
             ).map_err(|e| e.to_string())?;
         }
     }

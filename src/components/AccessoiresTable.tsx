@@ -51,6 +51,7 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
                     return {
                         ...item,
                         refId: refItem.id,
+                        originalRefId: refItem.originalRefId || 0,
                         nom: refItem.nom,
                         poids: refItem.poids,
                         esquive_bonus: refItem.esquive_bonus,
@@ -128,7 +129,7 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
                 </div>
             </div>
             <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[1200px]">
+                <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="text-sm font-serif font-bold text-leather uppercase tracking-wider border-b-2 border-leather">
                             <th className="p-2 w-12">ID</th>
@@ -146,6 +147,7 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
 
                             <th className="p-2 w-20 text-center">Rupture</th>
                             <th className="p-2 w-16 text-center">Mod</th>
+
                             <th className="p-2">Effet</th>
                             <th className="p-2 w-8"></th>
                         </tr>
@@ -165,9 +167,9 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
 
                             return (
                                 <tr key={item.id} className="border-b border-leather-light/30 hover:bg-leather/5">
-                                    <td className="p-2 text-xs text-ink-light">{item.refId || '-'}</td>
+                                    <td className="p-2 text-xs text-ink-light">{item.originalRefId || item.refId || '-'}</td>
                                     <td className="p-2 text-sm italic">{getRefValue(item.refId, 'item_type') || item.equipement_type}</td>
-                                    <td className="p-2 w-48 max-w-[12rem]">
+                                    <td className="p-2 w-48 max-w-[12rem]" title={getRefValue(item.refId, 'description')}>
                                         <SearchableSelect
                                             options={referenceOptions.map(r => ({ id: r.id, label: r.nom }))}
                                             value={item.refId}
@@ -228,6 +230,7 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
                                     <td className="p-2 text-sm max-w-[200px] truncate" title={getRefValue(item.refId, 'description')}>
                                         {getRefValue(item.refId, 'description') || ''}
                                     </td>
+
                                     <td className="p-2 text-center">
                                         <button
                                             onClick={() => handleRemoveRow(item.id)}

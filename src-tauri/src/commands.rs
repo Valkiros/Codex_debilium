@@ -18,7 +18,10 @@ pub struct RefEquipement {
     pub pr_spe: i32,       // New
     pub item_type: String, // New field
     pub description: String,
+    pub aura: String,                        // Added
     pub caracteristiques: serde_json::Value, // New field
+    #[serde(rename = "original_ref_id")]
+    pub original_ref_id: i32, // Added
     pub details: serde_json::Value,
 }
 
@@ -27,7 +30,7 @@ pub fn get_ref_equipements(state: State<AppState>) -> Result<Vec<RefEquipement>,
     let db = state.db.lock().map_err(|_| "Failed to acquire lock")?;
 
     let mut stmt = db
-        .prepare("SELECT id, category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracteristiques FROM ref_equipements ORDER BY category, nom")
+        .prepare("SELECT id, category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracteristiques, original_ref_id, aura FROM ref_equipements ORDER BY category, nom")
         .map_err(|e| e.to_string())?;
 
     let items = stmt
@@ -51,6 +54,8 @@ pub fn get_ref_equipements(state: State<AppState>) -> Result<Vec<RefEquipement>,
                 description: row.get(11)?,
                 caracteristiques: caracs_json,
                 details: serde_json::Value::Null,
+                original_ref_id: row.get(13).unwrap_or(0),
+                aura: row.get(14).unwrap_or_default(),
             })
         })
         .map_err(|e| e.to_string())?

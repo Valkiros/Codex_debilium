@@ -9,11 +9,9 @@ import { MagicStealthPanel } from './MagicStealthPanel';
 import { CharacteristicsPanel } from './CharacteristicsPanel';
 import { TempModifiersPanel } from './TempModifiersPanel';
 import { Inventory } from './Inventory';
-import { CharacterData, Equipement, Characteristics } from '../types';
+import { CharacterData, Equipement, Characteristics, GameRules, Origine } from '../types';
 
-interface CharacterSheetProps {
-    characterId: string;
-}
+
 
 const INITIAL_DATA: CharacterData = {
     identity: {
@@ -86,6 +84,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
     const [data, setDataState] = useState<CharacterData>(INITIAL_DATA);
     const [loading, setLoading] = useState(true);
     const [refs, setRefs] = useState<any[]>([]);
+    const [gameRules, setGameRules] = useState<GameRules | null>(null);
     const isInitialLoad = React.useRef(true);
 
     const saveCharacter = async () => {
@@ -117,16 +116,19 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
 
 
     useEffect(() => {
-        // Fetch Refs
-        const fetchRefs = async () => {
+        // Fetch Refs & Game Rules
+        const fetchData = async () => {
             try {
                 const refData = await invoke('get_ref_equipements') as any[];
                 setRefs(refData);
+
+                const rules = await invoke('get_game_rules') as GameRules;
+                setGameRules(rules);
             } catch (err) {
-                console.error("Failed to fetch equipment refs:", err);
+                console.error("Failed to fetch initial data:", err);
             }
         };
-        fetchRefs();
+        fetchData();
     }, []);
 
     useEffect(() => {
@@ -187,6 +189,11 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 // Explicitly exclude weapons
                 if (item.equipement_type !== 'Arme' && item.equipement_type !== 'MainsNues') {
 
+                    // Shield Logic: Skip if it's a shield and shield is inactive
+                    if (item.equipement_type === 'Bouclier' && !data.defenses.bouclier_actif) {
+                        return;
+                    }
+
                     // Add generic char_values
                     if (item.char_values) {
                         Object.entries(item.char_values).forEach(([key, val]) => {
@@ -228,7 +235,11 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             discretion: { value: 0, details: { formula: "Adresse Naturelle + Objets", components: [] as any[], total: 0 } },
             magie_physique: { value: 0, details: { formula: "Moyenne sup. (Intelligence + Adresse) + Objets", components: [] as any[], total: 0 } },
             magie_psychique: { value: 0, details: { formula: "Moyenne sup. (Intelligence + Charisme) + Objets", components: [] as any[], total: 0 } },
-            resistance_magique: { value: 0, details: { formula: "Moyenne sup. (Courage + Intelligence + Force) + Objets", components: [] as any[], total: 0 } }
+            resistance_magique: { value: 0, details: { formula: "Moyenne sup. (Courage + Intelligence + Force) + Objets", components: [] as any[], total: 0 } },
+
+            // Movement
+            marche: { value: 0, details: { formula: "Arrondi sup. (Vitesse Origine * Encombrement PR sol) + Objets", components: [] as any[], total: 0 } },
+            course: { value: 0, details: { formula: "Arrondi sup. (Vitesse Origine * Encombrement PR sol) + Objets", components: [] as any[], total: 0 } }
         };
 
         // 1. Add Natural Address for Discretion Base
@@ -262,7 +273,12 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             // Only consider equipped items
             if (!item.equipe) return;
             // Only protections and accessories
-            if (item.equipement_type === 'Armure' || item.equipement_type === 'Autre') {
+            if (item.equipement_type === 'Armure' || item.equipement_type === 'Autre' || item.equipement_type === 'Bouclier') {
+
+                // Shield Logic: Skip if it's a shield and shield is inactive
+                if (item.equipement_type === 'Bouclier' && !data.defenses.bouclier_actif) {
+                    return;
+                }
 
                 const refItem = refs.find(r => r.id === item.refId);
                 // Solide Base comes from degats_pr (Protection) for Armors, not PI
@@ -272,7 +288,6 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
 
                 // Modifiers
                 const modSol = parseInt(item.modif_pr_sol || '0') || 0;
-
                 const modSpe = parseInt(item.modif_pr_spe || '0') || 0;
                 const modMag = parseInt(item.modif_pr_mag || '0') || 0;
 
@@ -326,9 +341,70 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                         totals.resistance_magique.value += val;
                         totals.resistance_magique.details.components.push({ label: item.nom, value: val });
                     }
+
+                    // Marche
+                    const marcheKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'marche');
+                    if (marcheKey) {
+                        const val = item.char_values[marcheKey] || 0;
+                        totals.marche.value += val;
+                        totals.marche.details.components.push({ label: item.nom, value: val });
+                    }
+
+                    // Course
+                    const courseKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'course');
+                    if (courseKey) {
+                        const val = item.char_values[courseKey] || 0;
+                        totals.course.value += val;
+                        totals.course.details.components.push({ label: item.nom, value: val });
+                    }
                 }
             }
         });
+
+        // 3. Movement Base from Origin (Calculated AFTER items to account for PR Solide/Encumbrance)
+        if (gameRules && data.identity.origine) {
+            const originObj = gameRules.origines.find((o: Origine) =>
+                o.name_m === data.identity.origine || o.name_f === data.identity.origine
+            );
+
+            if (originObj) {
+                const speed = originObj.vitesse;
+                const prSolide = totals.solide.value + (data.defenses.solide.temp || 0);
+
+                // Determine Multipliers based on PR Solide
+                let marcheMult = 8;
+                if (prSolide >= 2 && prSolide < 3) marcheMult = 6;
+                else if (prSolide >= 3 && prSolide <= 5) marcheMult = 4;
+                else if (prSolide === 6) marcheMult = 3;
+                else if (prSolide === 7) marcheMult = 2;
+                else if (prSolide > 7) marcheMult = 1;
+
+                let courseMult = 12;
+                if (prSolide >= 2 && prSolide < 3) courseMult = 10;
+                else if (prSolide >= 3 && prSolide <= 4) courseMult = 8;
+                else if (prSolide === 5) courseMult = 6;
+                else if (prSolide === 6) courseMult = 4;
+                else if (prSolide === 7) courseMult = 3;
+                else if (prSolide > 7) courseMult = 2;
+
+
+                // Marche
+                const baseMarche = Math.ceil(speed * marcheMult / 100);
+                totals.marche.value += baseMarche;
+                totals.marche.details.components.push({
+                    label: `Base origine: ${speed / 100}\nPR sol ${prSolide} => ${marcheMult}`,
+                    value: baseMarche
+                });
+
+                // Course
+                const baseCourse = Math.ceil(speed * courseMult / 100);
+                totals.course.value += baseCourse;
+                totals.course.details.components.push({
+                    label: `Base origine: ${speed / 100}\nPR sol ${prSolide} => ${courseMult})`,
+                    value: baseCourse
+                });
+            }
+        }
 
         // Set totals in details
         totals.solide.details.total = totals.solide.value;
@@ -338,6 +414,8 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
         totals.magie_physique.details.total = totals.magie_physique.value;
         totals.magie_psychique.details.total = totals.magie_psychique.value;
         totals.resistance_magique.details.total = totals.resistance_magique.value;
+        totals.marche.details.total = totals.marche.value;
+        totals.course.details.total = totals.course.value;
 
         return totals;
     };
@@ -419,6 +497,10 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                                     speciale: computedStats.speciale,
                                     magique: computedStats.magique
                                 }}
+                                computedMovement={{
+                                    marche: computedStats.marche,
+                                    course: computedStats.course
+                                }}
                                 computedDiscretion={computedStats.discretion}
                                 onDefenseChange={(defenses) => setData({ ...data, defenses })}
                                 onMovementChange={(movement) => setData({ ...data, movement })}
@@ -452,6 +534,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                         inventory={data.inventory}
                         onInventoryChange={(inventory) => setData({ ...data, inventory })}
                         characterForce={equippedValues.force}
+                        bouclierActif={data.defenses.bouclier_actif}
                     />
                 </div>
             )}

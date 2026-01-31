@@ -70,14 +70,12 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                         <th className="p-2 text-left w-32">Nom</th>
                         <th className="p-2 w-16 text-leather-dark">Naturel</th>
 
-                        <th className="p-2 bg-leather/5 border-l border-white/20 w-12"></th> {/* Spacer */}
-
-                        {/* Static Temp Modifiers */}
+                        <th className="p-2 bg-leather/5 border-l border-white/20 w-12"></th>
                         <th className="p-2 w-16">T1</th>
                         <th className="p-2 w-16">T2</th>
                         <th className="p-2 w-16">T3</th>
 
-                        <th className="p-2 bg-leather/5 border-l border-white/20 w-12"></th> {/* Spacer */}
+                        <th className="p-2 bg-leather/5 border-l border-white/20 w-12"></th>
                         <th className="p-2 w-20">Équipé</th>
 
                         {/* Dynamic Headers with Tooltip Event */}
@@ -224,12 +222,11 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                 if (!item) return null;
                 const refItem = referenceOptions.find(r => r.id === item.refId);
                 const description = refItem?.description || item.description || '-';
-                // Try to infer Aura from PR Mag
-                const aura = refItem?.pr_mag || '-';
+                const aura = refItem?.aura || '-';
                 const rupture = item.rupture || refItem?.rupture || '-';
                 // Fix: Priority to Ref Type (Specific) > Ref Category > Item Type (Generic)
                 const type = refItem?.item_type || refItem?.category || item.equipement_type || '-';
-                const idDisplay = item.refId || '-';
+                const idDisplay = item.originalRefId || item.refId || '-';
 
                 return (
                     <Tooltip visible={!!hoveredInfo} position={{ x: hoveredInfo.x, y: hoveredInfo.y }} title={item.nom || refItem?.nom || 'Objet Inconnu'}>

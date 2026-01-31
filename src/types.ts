@@ -1,6 +1,7 @@
 export interface RefEquipementRaw {
     id: number;
     ref_id: number;
+    original_ref_id?: number;
     category: string;
     nom: string;
     degats?: any;
@@ -16,8 +17,10 @@ export interface RefEquipementRaw {
 export interface RefEquipement {
     id: number;
     ref_id: number;
+    originalRefId: number;
     category: string;
     nom: string;
+    aura: string; // Added
     poids: number;
     pi: number;
     rupture: string;
@@ -38,7 +41,7 @@ export interface Equipement {
     poids: number;
     esquive_bonus: number;
     degats_pr: string;
-    equipement_type: 'Armure' | 'Arme' | 'Sac' | 'Autre' | 'MainsNues';
+    equipement_type: 'Armure' | 'Arme' | 'Sac' | 'Autre' | 'MainsNues' | 'Bouclier';
     equipe: boolean;
     details?: any; // Carried over from RefEquipement
     modif_pi?: string;

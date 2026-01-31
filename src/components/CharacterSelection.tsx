@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { CharacterSummary } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -195,9 +196,14 @@ export function CharacterSelection({ onSelect, onLogout }: CharacterSelectionPro
                             className="bg-parchment border border-leather rounded p-6 relative hover:shadow-lg transition-transform duration-200 min-h-[150px] group"
                         >
                             <button
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                     e.stopPropagation();
-                                    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce personnage ? Cette action est irréversible.")) {
+                                    const yes = await ask("Êtes-vous sûr de vouloir supprimer ce personnage ? Cette action est irréversible.", {
+                                        title: 'Confirmer la suppression',
+                                        kind: 'warning'
+                                    });
+
+                                    if (yes) {
                                         invoke("delete_personnage", { id: char.id })
                                             .then(() => loadCharacters())
                                             .catch((err) => setError(String(err)));

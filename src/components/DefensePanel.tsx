@@ -11,13 +11,17 @@ interface DefensePanelProps {
         speciale: { value: number, details: StatDetail },
         magique: { value: number, details: StatDetail }
     };
+    computedMovement?: {
+        marche: { value: number, details: StatDetail },
+        course: { value: number, details: StatDetail }
+    };
     computedDiscretion?: { value: number, details: StatDetail };
     onDefenseChange: (defenses: Defenses) => void;
     onMovementChange: (movement: Movement) => void;
     onMagicChange: (magic: MagicStealth) => void;
 }
 
-export const DefensePanel: React.FC<DefensePanelProps> = ({ defenses, movement, magic, computedDefenses, computedDiscretion, onDefenseChange, onMovementChange, onMagicChange }) => {
+export const DefensePanel: React.FC<DefensePanelProps> = ({ defenses, movement, magic, computedDefenses, computedMovement, computedDiscretion, onDefenseChange, onMovementChange, onMagicChange }) => {
     const [hoveredInfo, setHoveredInfo] = useState<{ details: StatDetail, x: number, y: number } | null>(null);
 
     const handleProtectionChange = (category: keyof Defenses, field: keyof ProtectionValue, value: string) => {
@@ -123,15 +127,37 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({ defenses, movement, 
 
     const renderMovementRow = (label: string, category: keyof Movement) => {
         const data = movement[category];
+
+        let isComputed = false;
+        let baseValue = data.base;
+        let details: StatDetail | undefined;
+
+        if (computedMovement) {
+            if (category === 'marche') { baseValue = computedMovement.marche.value; details = computedMovement.marche.details; isComputed = true; }
+            if (category === 'course') { baseValue = computedMovement.course.value; details = computedMovement.course.details; isComputed = true; }
+        }
+
         return (
             <div className="flex items-center gap-2 mb-2">
                 <label className="w-24 text-sm font-bold text-leather">{label}</label>
                 <input
                     type="number"
-                    value={data.base || ''}
-                    onChange={(e) => handleMovementChange(category, 'base', e.target.value)}
-                    className="w-16 bg-white/50 border border-leather/30 rounded text-center"
+                    value={isComputed ? baseValue : (data.base || '')}
+                    onChange={(e) => !isComputed && handleMovementChange(category, 'base', e.target.value)}
+                    readOnly={isComputed}
+                    className={`w-16 border border-leather/30 rounded text-center ${isComputed ? 'bg-black/5 text-leather-dark cursor-help font-bold' : 'bg-white/50'}`}
                     placeholder="Base"
+                    onMouseEnter={(e) => {
+                        if (isComputed && details) {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredInfo({
+                                details,
+                                x: rect.left + (rect.width / 2),
+                                y: rect.top
+                            });
+                        }
+                    }}
+                    onMouseLeave={() => setHoveredInfo(null)}
                 />
                 <span className="text-leather-light">+</span>
                 <input
@@ -142,7 +168,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({ defenses, movement, 
                     placeholder="Add"
                 />
                 <span className="text-leather-light">=</span>
-                <span className="w-8 font-bold text-center">{data.base + data.temp}</span>
+                <span className="w-8 font-bold text-center">{baseValue + (data.temp || 0)}</span>
             </div>
         );
     };
@@ -237,7 +263,7 @@ export const DefensePanel: React.FC<DefensePanelProps> = ({ defenses, movement, 
                         <div className="space-y-1">
                             {hoveredInfo.details.components.map((comp, idx) => (
                                 <div key={idx} className="flex justify-between items-center text-xs">
-                                    <span>{comp.label} :</span>
+                                    <span className="whitespace-pre-wrap">{comp.label} :</span>
                                     <span className={`font-bold ${comp.value >= 0 ? 'text-[#eebb44]' : 'text-red-400'}`}>
                                         {comp.value > 0 ? '+' : ''}{comp.value}
                                     </span>

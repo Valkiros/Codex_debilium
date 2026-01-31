@@ -53,6 +53,7 @@ export const MainsNuesTable: React.FC<MainsNuesTableProps> = ({ items, onItemsCh
                     return {
                         ...item,
                         refId: refItem.id,
+                        originalRefId: refItem.originalRefId || 0,
                         nom: refItem.nom,
                         poids: refItem.poids,
                         esquive_bonus: refItem.esquive_bonus,
@@ -196,7 +197,7 @@ export const MainsNuesTable: React.FC<MainsNuesTableProps> = ({ items, onItemsCh
                             return (
                                 <tr key={item.id} className="border-b border-leather-light/30 hover:bg-leather/5">
                                     <td className="p-2 font-bold text-leather-dark">M{index + 1}</td>
-                                    <td className="p-2 text-xs text-ink-light">{item.refId || '-'}</td>
+                                    <td className="p-2 text-xs text-ink-light">{item.originalRefId || item.refId || '-'}</td>
                                     <td className="p-2 text-sm italic">{(() => {
                                         const r = referenceOptions.find(o => o.id === item.refId);
                                         return r?.item_type || getRefCategory(item.refId) || item.equipement_type;

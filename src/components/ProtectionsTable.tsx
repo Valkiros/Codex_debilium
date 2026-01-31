@@ -8,9 +8,10 @@ interface ProtectionsTableProps {
     onItemsChange: (items: Equipement[]) => void;
     referenceOptions: RefEquipement[];
     defaultItem?: Partial<Equipement>;
+    bouclierActif: boolean;
 }
 
-export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem }) => {
+export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem, bouclierActif }) => {
 
     const handleAddRow = () => {
         const newItem: Equipement = {
@@ -52,10 +53,12 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                     return {
                         ...item,
                         refId: refItem.id,
+                        originalRefId: refItem.originalRefId || 0,
                         nom: refItem.nom,
                         poids: refItem.poids,
                         esquive_bonus: refItem.esquive_bonus,
                         degats_pr: refItem.degats_pr, // This is PR Sol for armors
+                        equipement_type: refItem.item_type === 'Bouclier' ? 'Bouclier' : 'Armure',
                         // Attempts to extract rupture/details from raw if standard fields don't have it
                         rupture: refItem.rupture || refItem.raw.details?.rupture || '',
                         description: refItem.description,
@@ -80,13 +83,32 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                         modif_pr_spe: '',
                         modif_pr_mag: '',
                         modif_rupture: '',
-                        description: ''
+                        description: '',
+                        equipement_type: 'Armure' // Reset to default
                     };
                 }
                 return item;
             }));
         }
     };
+
+    // Auto-migrate old Shields to 'Bouclier' type
+    React.useEffect(() => {
+        const needsUpdate = items.some(item => {
+            const ref = referenceOptions.find(r => r.id === item.refId);
+            return ref && ref.item_type === 'Bouclier' && item.equipement_type !== 'Bouclier';
+        });
+
+        if (needsUpdate) {
+            onItemsChange(items.map(item => {
+                const ref = referenceOptions.find(r => r.id === item.refId);
+                if (ref && ref.item_type === 'Bouclier' && item.equipement_type !== 'Bouclier') {
+                    return { ...item, equipement_type: 'Bouclier' };
+                }
+                return item;
+            }));
+        }
+    }, [items, referenceOptions, onItemsChange]);
 
     const handleUpdateField = (id: string, field: keyof Equipement, value: any) => {
         onItemsChange(items.map(item => {
@@ -134,7 +156,7 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                 </div>
             </div>
             <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[1200px]">
+                <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="text-sm font-serif font-bold text-leather uppercase tracking-wider border-b-2 border-leather">
                             <th className="p-2 w-12">ID</th>
@@ -164,11 +186,17 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                             const refPrMag = getRefValue(item.refId, 'pr_mag');
                             const refRupture = getRefValue(item.refId, 'rupture');
 
+                            const isShield = item.equipement_type === 'Bouclier';
+                            const isInactive = isShield && !bouclierActif;
+
                             return (
-                                <tr key={item.id} className="border-b border-leather-light/30 hover:bg-leather/5">
-                                    <td className="p-2 text-xs text-ink-light">{item.refId || '-'}</td>
-                                    <td className="p-2 text-sm italic">{getRefValue(item.refId, 'item_type') || item.equipement_type}</td>
-                                    <td className="p-2 w-48 max-w-[12rem]">
+                                <tr key={item.id} className={`border-b border-leather-light/30 hover:bg-leather/5 transition-opacity duration-300 ${isInactive ? 'opacity-50 grayscale' : ''}`}>
+                                    <td className="p-2 text-xs text-ink-light">{item.originalRefId || item.refId || '-'}</td>
+                                    <td className="p-2 text-sm italic">
+                                        {getRefValue(item.refId, 'item_type') || item.equipement_type}
+                                        {isShield && !bouclierActif && <span className="ml-1 text-[10px] text-red-500 font-bold">(Inactif)</span>}
+                                    </td>
+                                    <td className="p-2 w-48 max-w-[12rem]" title={getRefValue(item.refId, 'description')}>
                                         <SearchableSelect
                                             options={referenceOptions.map(r => ({ id: r.id, label: r.nom }))}
                                             value={item.refId}
@@ -228,6 +256,7 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                                     <td className="p-2 text-sm max-w-[150px] truncate" title={getRefValue(item.refId, 'description')}>
                                         {getRefValue(item.refId, 'description') || ''}
                                     </td>
+
                                     <td className="p-2 text-center">
                                         <button
                                             onClick={() => handleRemoveRow(item.id)}

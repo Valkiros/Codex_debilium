@@ -11,15 +11,16 @@ interface InventoryProps {
     inventory: Equipement[];
     onInventoryChange: (items: Equipement[]) => void;
     characterForce: number;
+    bouclierActif: boolean;
 }
 
-export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChange, characterForce }) => {
+export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChange, characterForce, bouclierActif }) => {
     const [refs, setRefs] = useState<RefEquipement[]>([]);
 
     // Derived state for sections
     const mainsNues = inventory.filter(i => i.equipement_type === 'MainsNues');
     const armes = inventory.filter(i => i.equipement_type === 'Arme');
-    const protections = inventory.filter(i => i.equipement_type === 'Armure');
+    const protections = inventory.filter(i => i.equipement_type === 'Armure' || i.equipement_type === 'Bouclier');
     const accessoires = inventory.filter(i => i.equipement_type === 'Autre');
 
     useEffect(() => {
@@ -35,21 +36,13 @@ export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChan
             // ... oh wait, the previous code was IMPORTING supabase. 
             // I should switch to `invoke('get_ref_equipements')`.
 
-            /*
-             const { data, error } = await supabase
-                 .from('ref_items')
-                 .select('*')
-                 .range(0, 10000)
-                 .order('category')
-                 .order('nom');
-              */
-
             // Re-writing to use invoke
             try {
                 const data = await invoke('get_ref_equipements') as any[]; // Type assertion for now
                 const mappedRefs: RefEquipement[] = data.map((row: any) => ({
                     id: row.id,
                     ref_id: row.id, // ID is the ref_id locally
+                    originalRefId: row.original_ref_id || 0, // Map original ID
                     category: row.category,
                     nom: row.nom,
                     poids: row.poids,
@@ -60,6 +53,7 @@ export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChan
                     pr_mag: row.pr_mag,
                     pr_spe: row.pr_spe,
                     item_type: row.item_type,
+                    aura: row.aura || '',
                     description: row.description,
                     raw: row
                 }));
@@ -142,7 +136,7 @@ export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChan
         } else if (sectionType === 'Armes') {
             otherItems = inventory.filter(i => i.equipement_type !== 'Arme');
         } else if (sectionType === 'Armure') {
-            otherItems = inventory.filter(i => i.equipement_type !== 'Armure');
+            otherItems = inventory.filter(i => i.equipement_type !== 'Armure' && i.equipement_type !== 'Bouclier');
         } else if (sectionType === 'Autre') {
             otherItems = inventory.filter(i => i.equipement_type !== 'Autre');
         }
@@ -179,6 +173,7 @@ export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChan
                         onItemsChange={(items) => updateSection(items, 'Armure')}
                         referenceOptions={refs.filter(r => r.category === 'Protections')}
                         defaultItem={{ equipement_type: 'Armure' }}
+                        bouclierActif={bouclierActif}
                     />
 
                     <AccessoiresTable

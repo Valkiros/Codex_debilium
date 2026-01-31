@@ -101,7 +101,7 @@ export const MagicStealthPanel: React.FC<MagicStealthPanelProps> = ({ stats, com
                         <div className="space-y-1">
                             {hoveredInfo.details.components.map((comp, idx) => (
                                 <div key={idx} className="flex justify-between items-center text-xs">
-                                    <span>{comp.label} :</span>
+                                    <span className="whitespace-pre-wrap">{comp.label} :</span>
                                     <span className={`font-bold ${comp.value >= 0 ? 'text-[#eebb44]' : 'text-red-400'}`}>
                                         {comp.value > 0 ? '+' : ''}{comp.value}
                                     </span>

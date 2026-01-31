@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
+import { readFile } from '@tauri-apps/plugin-fs';
 import { Identity, Vitals, CharacterData, GameRules, Origine, Metier, Requirements, Characteristics } from '../types';
 import { VitalsPanel } from './VitalsPanel';
 
@@ -53,6 +55,42 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
         }
 
         onIdentityChange(newIdentity);
+        onIdentityChange(newIdentity);
+    };
+
+    const handleImageClick = async () => {
+        try {
+            const selected = await open({
+                multiple: false,
+                filters: [{
+                    name: 'Images',
+                    extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif']
+                }]
+            });
+
+            if (selected && typeof selected === 'string') {
+                // Read binary file
+                const contents = await readFile(selected);
+
+                // Convert to Base64
+                const base64String = btoa(
+                    new Uint8Array(contents)
+                        .reduce((data, byte) => data + String.fromCharCode(byte), '')
+                );
+
+                // Determine Mime Type (basic detection)
+                const ext = selected.split('.').pop()?.toLowerCase() || 'jpg';
+                let mime = 'image/jpeg';
+                if (ext === 'png') mime = 'image/png';
+                else if (ext === 'webp') mime = 'image/webp';
+                else if (ext === 'gif') mime = 'image/gif';
+
+                const dataUrl = `data:${mime};base64,${base64String}`;
+                handleIdentityChange('avatar_url', dataUrl);
+            }
+        } catch (err) {
+            console.error('Failed to open dialog or read file:', err);
+        }
     };
 
     const getMissingRequirements = (req: Requirements, stats: Characteristics): string[] => {
@@ -104,11 +142,27 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
         <div className="flex flex-col gap-6 p-4 bg-parchment/30 rounded-lg border border-leather/50 relative">
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Image Placeholder */}
-                <div className="w-full md:w-48 h-48 bg-leather/10 border-2 border-leather border-dashed rounded flex flex-col items-center justify-center cursor-pointer hover:bg-leather/20 transition-colors">
-                    {identity.avatar_url ? (
-                        <img src={identity.avatar_url} alt="Avatar" className="w-full h-full object-cover rounded" />
-                    ) : (
-                        <span className="text-leather/50 font-serif">Image</span>
+                <div className="relative group w-full md:w-48 h-48">
+                    <div onClick={handleImageClick} className="w-full h-full bg-leather/10 border-2 border-leather border-dashed rounded flex flex-col items-center justify-center cursor-pointer hover:bg-leather/20 transition-colors">
+                        {identity.avatar_url ? (
+                            <img src={identity.avatar_url} alt="Avatar" className="w-full h-full object-cover rounded" />
+                        ) : (
+                            <span className="text-leather/50 font-serif">Image</span>
+                        )}
+                    </div>
+                    {identity.avatar_url && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleIdentityChange('avatar_url', '');
+                            }}
+                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                            title="Supprimer l'image"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </button>
                     )}
                 </div>
 
