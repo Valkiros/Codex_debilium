@@ -44,16 +44,16 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
 
     // Filter and label dynamic columns
     const mainsNues = inventory.filter(i => i.equipement_type === 'MainsNues');
-    const armes = inventory.filter(i => i.equipement_type === 'Arme');
+    const armes = inventory.filter(i => i.equipement_type === 'Armes');
 
     const dynamicColumns = [
         ...mainsNues.map((item, idx) => ({
-            id: item.id,
+            id: item.uid,
             label: `M${idx + 1}`,
             type: 'MainsNues'
         })),
         ...armes.map((item, idx) => ({
-            id: item.id,
+            id: item.uid,
             label: `A${idx + 1}`,
             type: 'Arme'
         }))
@@ -159,7 +159,7 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
 
                                 {/* Dynamic Inputs */}
                                 {dynamicColumns.map(col => {
-                                    const item = inventory.find(i => i.id === col.id);
+                                    const item = inventory.find(i => i.uid === col.id) as any;
 
                                     if (key === 'degats') {
                                         if (!item) return <td key={col.id}></td>;
@@ -170,8 +170,8 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
 
                                         let modifVal = 0;
                                         if (item.modif_pi) {
-                                            const parsed = parseInt(item.modif_pi);
-                                            if (!isNaN(parsed)) modifVal = parsed;
+                                            const val = Number(item.modif_pi);
+                                            if (!isNaN(val)) modifVal = val;
                                         }
 
                                         // Calculate Bonus FO for this specific item column
@@ -199,8 +199,19 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                                         );
                                     }
 
-                                    const bonus = item?.char_values?.[key] || 0;
-                                    const total = (equippedValues[key] || 0) + bonus;
+                                    const refItem = referenceOptions.find(r => r.id === item.refId);
+
+                                    // Calculate bonus from Item Instance (modifiers) AND Reference Item (base stats)
+                                    // Use parseInt for robust parsing of strings like "+2" or "-1"
+                                    const instanceBonus = parseInt(String(item?.char_values?.[key] || 0), 10);
+
+                                    // Check RefItem root property or fallback to raw.caracteristiques
+                                    // Use 'any' cast if needed for dynamic access
+                                    const refValRoot = (refItem as any)?.[key];
+                                    const refValRaw = refItem?.raw?.caracteristiques?.[key];
+                                    const refBonus = parseInt(String(refValRoot || refValRaw || 0), 10);
+
+                                    const total = (equippedValues[key] || 0) + instanceBonus + refBonus;
 
                                     return (
                                         <td key={col.id} className="p-2">
@@ -218,18 +229,20 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
 
             {/* Floating Tooltip */}
             {hoveredInfo && (() => {
-                const item = inventory.find(i => i.id === hoveredInfo.id);
+                const item = inventory.find(i => i.uid === hoveredInfo.id);
                 if (!item) return null;
                 const refItem = referenceOptions.find(r => r.id === item.refId);
-                const description = refItem?.description || item.description || '-';
-                const aura = refItem?.aura || '-';
-                const rupture = item.rupture || refItem?.rupture || '-';
+                // Fallback to raw/details if distinct properties are missing
+                const rawDetails = refItem?.raw?.details || {};
+                const effet = refItem?.effet || rawDetails.effet || '-';
+                const aura = refItem?.aura || rawDetails.aura || '-';
+                const rupture = refItem?.rupture || rawDetails.rupture || '-';
                 // Fix: Priority to Ref Type (Specific) > Ref Category > Item Type (Generic)
-                const type = refItem?.item_type || refItem?.category || item.equipement_type || '-';
-                const idDisplay = item.originalRefId || item.refId || '-';
+                const type = refItem?.item_type || '-';
+                const idDisplay = refItem?.ref_id || '-';
 
                 return (
-                    <Tooltip visible={!!hoveredInfo} position={{ x: hoveredInfo.x, y: hoveredInfo.y }} title={item.nom || refItem?.nom || 'Objet Inconnu'}>
+                    <Tooltip visible={!!hoveredInfo} position={{ x: hoveredInfo.x, y: hoveredInfo.y }} title={refItem?.nom || 'Objet Inconnu'}>
                         <div className="flex justify-between items-center text-xs">
                             <span className="text-[#cca43b] font-semibold">ID :</span>
                             <span className="font-mono">{idDisplay}</span>
@@ -247,7 +260,7 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                             <span>{rupture}</span>
                         </div>
                         <div className="border-t border-[#cca43b]/20 pt-2 mt-2 italic text-xs text-center text-[#f0e6d2]/80 leading-relaxed">
-                            {description}
+                            {effet}
                         </div>
                     </Tooltip>
                 );

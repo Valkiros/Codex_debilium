@@ -1,68 +1,122 @@
-use crate::db::AppState;
+use crate::db::{AppState, RefEquipement};
 use crate::logic::{calculer_stats_finales, BaseStats, Equipement, Etats, FinalStats};
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RefEquipement {
-    pub id: i64,
-    pub category: String,
-    pub nom: String,
-    pub poids: f64,
-    pub pi: i32,
-    pub rupture: String, // New field
-    pub esquive_bonus: i32,
-    pub degats_pr: String,
-    pub pr_mag: i32,       // New
-    pub pr_spe: i32,       // New
-    pub item_type: String, // New field
-    pub description: String,
-    pub aura: String,                        // Added
-    pub caracteristiques: serde_json::Value, // New field
-    #[serde(rename = "original_ref_id")]
-    pub original_ref_id: i32, // Added
-    pub details: serde_json::Value,
-}
-
 #[tauri::command]
-pub fn get_ref_equipements(state: State<AppState>) -> Result<Vec<RefEquipement>, String> {
-    let db = state.db.lock().map_err(|_| "Failed to acquire lock")?;
-
-    let mut stmt = db
-        .prepare("SELECT id, category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracteristiques, original_ref_id, aura FROM ref_equipements ORDER BY category, nom")
+pub fn get_ref_items(state: State<AppState>) -> Result<Vec<RefEquipement>, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT id, category, ref_id, nom, degats, caracteristiques, protections, prix_info, craft, details FROM ref_items")
         .map_err(|e| e.to_string())?;
 
-    let items = stmt
+    let items_iter = stmt
         .query_map([], |row| {
-            let caracs_str: String = row.get(12).unwrap_or("{}".to_string());
-            let caracs_json: serde_json::Value =
-                serde_json::from_str(&caracs_str).unwrap_or(serde_json::json!({}));
-
             Ok(RefEquipement {
                 id: row.get(0)?,
                 category: row.get(1)?,
-                nom: row.get(2)?,
-                poids: row.get(3)?,
-                pi: row.get(4)?,
-                rupture: row.get(5)?,
-                esquive_bonus: row.get(6)?,
-                degats_pr: row.get(7)?,
-                pr_mag: row.get(8)?,
-                pr_spe: row.get(9)?,
-                item_type: row.get(10)?,
-                description: row.get(11)?,
-                caracteristiques: caracs_json,
-                details: serde_json::Value::Null,
-                original_ref_id: row.get(13).unwrap_or(0),
-                aura: row.get(14).unwrap_or_default(),
+                ref_id: row.get(2)?,
+                nom: row.get(3)?,
+                degats: serde_json::from_str(&row.get::<_, String>(4)?).unwrap_or_default(),
+                caracteristiques: serde_json::from_str(&row.get::<_, String>(5)?)
+                    .unwrap_or_default(),
+                protections: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or_default(),
+                prix_info: serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
+                craft: serde_json::from_str(&row.get::<_, String>(8)?).unwrap_or_default(),
+                details: serde_json::from_str(&row.get::<_, String>(9)?).unwrap_or_default(),
             })
         })
-        .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 
+    let mut items = Vec::new();
+    for item in items_iter {
+        items.push(item.map_err(|e| e.to_string())?);
+    }
+
     Ok(items)
+}
+
+#[tauri::command]
+pub fn create_ref_equipement(
+    category: String,
+    ref_id: i32,
+    nom: String,
+    degats: serde_json::Value,
+    caracteristiques: serde_json::Value,
+    protections: serde_json::Value,
+    prix_info: serde_json::Value,
+    craft: serde_json::Value,
+    details: serde_json::Value,
+    state: State<AppState>,
+) -> Result<i64, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+
+    db.execute(
+        "INSERT INTO ref_items (category, ref_id, nom, degats, caracteristiques, protections, prix_info, craft, details)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        params![
+            category,
+            ref_id,
+            nom,
+            degats.to_string(),
+            caracteristiques.to_string(),
+            protections.to_string(),
+            prix_info.to_string(),
+            craft.to_string(),
+            details.to_string()
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(db.last_insert_rowid())
+}
+
+#[tauri::command]
+pub fn update_ref_equipement(
+    id: i64,
+    category: String,
+    ref_id: i32,
+    nom: String,
+    degats: serde_json::Value,
+    caracteristiques: serde_json::Value,
+    protections: serde_json::Value,
+    prix_info: serde_json::Value,
+    craft: serde_json::Value,
+    details: serde_json::Value,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+
+    db.execute(
+        "UPDATE ref_items SET 
+            category = ?1, ref_id = ?2, nom = ?3, degats = ?4, caracteristiques = ?5, 
+            protections = ?6, prix_info = ?7, craft = ?8, details = ?9
+         WHERE id = ?10",
+        params![
+            category,
+            ref_id,
+            nom,
+            degats.to_string(),
+            caracteristiques.to_string(),
+            protections.to_string(),
+            prix_info.to_string(),
+            craft.to_string(),
+            details.to_string(),
+            id
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_ref_equipement(id: i64, state: State<AppState>) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM ref_items WHERE id = ?1", params![id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]

@@ -7,7 +7,11 @@ interface MagicStealthPanelProps {
     computedMagic?: {
         magie_physique: { value: number, details: StatDetail },
         magie_psychique: { value: number, details: StatDetail },
-        resistance_magique: { value: number, details: StatDetail }
+        resistance_magique: { value: number, details: StatDetail },
+        // Protection Status
+        protection_pluie: { value: number, details: StatDetail },
+        protection_froid: { value: number, details: StatDetail },
+        protection_chaleur: { value: number, details: StatDetail }
     };
     onChange: (stats: MagicStealth) => void;
 }
@@ -31,9 +35,14 @@ export const MagicStealthPanel: React.FC<MagicStealthPanelProps> = ({ stats, com
         let details: StatDetail | undefined;
 
         if (computedMagic) {
-            if (category === 'magie_physique') { baseValue = computedMagic.magie_physique.value; details = computedMagic.magie_physique.details; isComputed = true; }
-            if (category === 'magie_psychique') { baseValue = computedMagic.magie_psychique.value; details = computedMagic.magie_psychique.details; isComputed = true; }
-            if (category === 'resistance_magique') { baseValue = computedMagic.resistance_magique.value; details = computedMagic.resistance_magique.details; isComputed = true; }
+            // Check if this category exists in computedMagic (it should for all displayed here)
+            // @ts-ignore - Dynamic access to computedMagic
+            const computed = computedMagic[category as keyof typeof computedMagic];
+            if (computed) {
+                baseValue = computed.value;
+                details = computed.details;
+                isComputed = true;
+            }
         }
 
         return (
@@ -82,14 +91,29 @@ export const MagicStealthPanel: React.FC<MagicStealthPanelProps> = ({ stats, com
     };
 
     return (
-        <div className="p-4 my-4 bg-parchment/30 rounded border border-leather/20">
-            <h3 className="font-serif font-bold text-leather font-xl uppercase mb-4 border-b border-leather/20 pb-2">
-                Magie
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                {renderRow("Magie Physique", "magie_physique")}
-                {renderRow("Magie Psychique", "magie_psychique")}
-                {renderRow("Résistance Magique", "resistance_magique")}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+            {/* Box 1: Magie + Résistance Magique */}
+            <div className="p-4 bg-parchment/30 rounded border border-leather/20">
+                <h3 className="font-serif font-bold text-leather font-xl uppercase mb-4 border-b border-leather/20 pb-2">
+                    Magie
+                </h3>
+                <div className="flex flex-col gap-2">
+                    {renderRow("Physique", "magie_physique")}
+                    {renderRow("Psychique", "magie_psychique")}
+                    {renderRow("Résistance Magique", "resistance_magique")}
+                </div>
+            </div>
+
+            {/* Box 2: Protection Status */}
+            <div className="p-4 bg-parchment/30 rounded border border-leather/20">
+                <h3 className="font-serif font-bold text-leather font-xl uppercase mb-4 border-b border-leather/20 pb-2">
+                    Protection Status
+                </h3>
+                <div className="flex flex-col gap-2">
+                    {renderRow("Pluie", "protection_pluie")}
+                    {renderRow("Froid", "protection_froid")}
+                    {renderRow("Chaleur", "protection_chaleur")}
+                </div>
             </div>
 
             <Tooltip visible={!!hoveredInfo} position={hoveredInfo ? { x: hoveredInfo.x, y: hoveredInfo.y } : { x: 0, y: 0 }} title="Détails du Calcul">

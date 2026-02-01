@@ -35,7 +35,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             sync::sync_personnages,
-            commands::get_ref_equipements,
+            sync::sync_ref_items,
+            commands::get_ref_items,
             commands::compute_stats,
             commands::get_all_personnages,
             commands::get_personnage,
@@ -46,7 +47,10 @@ pub fn run() {
             commands::get_personnage_versions,
             commands::restore_personnage_version,
             commands::get_game_rules,
-            commands::get_competences
+            commands::get_competences,
+            commands::create_ref_equipement,
+            commands::update_ref_equipement,
+            commands::delete_ref_equipement
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -50,7 +50,10 @@ const INITIAL_DATA: CharacterData = {
         magie_physique: { base: 0, temp: 0 },
         magie_psychique: { base: 0, temp: 0 },
         resistance_magique: { base: 0, temp: 0 },
-        discretion: { base: 0, temp: 0 }
+        discretion: { base: 0, temp: 0 },
+        protection_pluie: { base: 0, temp: 0 },
+        protection_froid: { base: 0, temp: 0 },
+        protection_chaleur: { base: 0, temp: 0 }
     },
     characteristics: {
         courage: { naturel: 0, t1: 0, t2: 0, t3: 0 },
@@ -124,7 +127,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
         // Fetch Refs & Game Rules
         const fetchData = async () => {
             try {
-                const refData = await invoke('get_ref_equipements') as any[];
+                const refData = await invoke('get_ref_items') as any[];
                 setRefs(refData);
 
                 const rules = await invoke('get_game_rules') as GameRules;
@@ -192,31 +195,32 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
 
         // Add Inventory Bonuses (excluding Weapons/Unarmed which have their own columns)
         data.inventory.forEach((item: Equipement) => {
-            if (item.equipe) {
-                // Filter for Protections (Armure) and Accessoires (Autre/Sac?)
-                // Explicitly exclude weapons
-                if (item.equipement_type !== 'Arme' && item.equipement_type !== 'MainsNues') {
+            // Filter for Protections (Armure) and Accessoires (Autre/Sac?)
+            // Explicitly exclude weapons
+            if (item.equipement_type !== 'Armes' && item.equipement_type !== 'MainsNues') {
 
-                    // Shield Logic: Skip if it's a shield and shield is inactive
-                    if (item.equipement_type === 'Bouclier' && !data.defenses.bouclier_actif) {
-                        return;
-                    }
+                // Look up the Reference Item
+                const refItem = refs.find(r => r.id === item.refId);
 
-                    // Add generic char_values
-                    if (item.char_values) {
-                        Object.entries(item.char_values).forEach(([key, val]) => {
-                            // Normalize key to lowercase to match 'force', 'adresse' etc.
-                            const normalizedKey = key.toLowerCase();
-                            if (normalizedKey in values) {
-                                values[normalizedKey as keyof Characteristics] += val;
-                            }
-                        });
-                    }
+                // Shield Logic: Skip if it's a shield and shield is inactive
+                // We check the reference item 'type' in details, as equipement_type allows only broad categories
+                if (refItem?.details?.type === 'Bouclier' && !data.defenses.bouclier_actif) {
+                    return;
+                }
 
-                    // Add hardcoded bonuses (currently only esquive_bonus is standard)
-                    if (item.esquive_bonus) {
-                        values.esquive += item.esquive_bonus;
-                    }
+                // Check for stats in either raw structure (if mapped) or direct (if raw)
+                const caracs = refItem?.raw?.caracteristiques || refItem?.caracteristiques;
+
+                if (caracs) {
+                    Object.entries(caracs).forEach(([key, val]) => {
+                        const normalizedKey = key.toLowerCase();
+                        // Cast val to number safely
+                        const bonus = parseInt(String(val || 0), 10);
+
+                        if (bonus !== 0 && normalizedKey in values) {
+                            values[normalizedKey as keyof Characteristics] += bonus;
+                        }
+                    });
                 }
             }
         });
@@ -244,6 +248,11 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             magie_physique: { value: 0, details: { formula: "Moyenne sup. (Intelligence + Adresse) + Objets", components: [] as any[], total: 0 } },
             magie_psychique: { value: 0, details: { formula: "Moyenne sup. (Intelligence + Charisme) + Objets", components: [] as any[], total: 0 } },
             resistance_magique: { value: 0, details: { formula: "Moyenne sup. (Courage + Intelligence + Force) + Objets", components: [] as any[], total: 0 } },
+
+            // Protection Status (Environment)
+            protection_pluie: { value: 0, details: { formula: "Protections + Accessoires", components: [] as any[], total: 0 } },
+            protection_froid: { value: 0, details: { formula: "Protections + Accessoires", components: [] as any[], total: 0 } },
+            protection_chaleur: { value: 0, details: { formula: "Protections + Accessoires", components: [] as any[], total: 0 } },
 
             // Movement
             marche: { value: 0, details: { formula: "Arrondi sup. (Vitesse Origine * Encombrement PR sol) + Objets", components: [] as any[], total: 0 } },
@@ -278,26 +287,35 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
 
 
         data.inventory.forEach(item => {
-            // Only consider equipped items
-            if (!item.equipe) return;
             // Only protections and accessories
-            if (item.equipement_type === 'Armure' || item.equipement_type === 'Autre' || item.equipement_type === 'Bouclier') {
+            // Cast to string to allow checking legacy types like 'Armure', 'Bouclier', 'Autre'
+            const type = item.equipement_type as string;
+            if (['Protections', 'Accessoires'].includes(type)) {
+
+                const refItem = refs.find(r => r.id === item.refId);
 
                 // Shield Logic: Skip if it's a shield and shield is inactive
-                if (item.equipement_type === 'Bouclier' && !data.defenses.bouclier_actif) {
+                if (refItem?.details?.type === 'Bouclier' && !data.defenses.bouclier_actif) {
                     return;
                 }
 
-                const refItem = refs.find(r => r.id === item.refId);
                 // Solide Base comes from degats_pr (Protection) for Armors, not PI
-                const baseSol = parseInt(refItem?.degats_pr || '0') || 0;
-                const baseSpe = refItem?.pr_spe || 0; // Speciale Base
-                const baseMag = refItem?.pr_mag || 0; // Magique Base
+                // Try to find pr_sol in protections object (if raw) or direct (if mapped) or degats_pr (legacy?)
+                const protections = refItem?.protections || refItem?.raw?.protections || {};
+                const baseSol = parseInt(String(protections.pr_sol || 0), 10);
+                const baseSpe = parseInt(String(protections.pr_spe || 0), 10);
+                const baseMag = parseInt(String(protections.pr_mag || 0), 10);
+
+                // Environment Base
+                const basePluie = refItem?.pluie || 0;
+                const baseFroid = refItem?.froid || 0;
+                const baseChaleur = refItem?.chaleur || 0;
+
 
                 // Modifiers
-                const modSol = parseInt(item.modif_pr_sol || '0') || 0;
-                const modSpe = parseInt(item.modif_pr_spe || '0') || 0;
-                const modMag = parseInt(item.modif_pr_mag || '0') || 0;
+                const modSol = parseInt(String(item.modif_pr_sol || 0), 10);
+                const modSpe = parseInt(String(item.modif_pr_spe || 0), 10);
+                const modMag = parseInt(String(item.modif_pr_mag || 0), 10);
 
                 const valSol = baseSol + modSol;
                 const valSpe = baseSpe + modSpe;
@@ -305,15 +323,29 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
 
                 if (valSol !== 0) {
                     totals.solide.value += valSol;
-                    totals.solide.details.components.push({ label: item.nom, value: valSol });
+                    totals.solide.details.components.push({ label: refItem?.nom || item.nom, value: valSol });
                 }
                 if (valSpe !== 0) {
                     totals.speciale.value += valSpe;
-                    totals.speciale.details.components.push({ label: item.nom, value: valSpe });
+                    totals.speciale.details.components.push({ label: refItem?.nom || item.nom, value: valSpe });
                 }
                 if (valMag !== 0) {
                     totals.magique.value += valMag;
-                    totals.magique.details.components.push({ label: item.nom, value: valMag });
+                    totals.magique.details.components.push({ label: refItem?.nom || item.nom, value: valMag });
+                }
+
+                // Environment Stats Calculation
+                if (basePluie !== 0) {
+                    totals.protection_pluie.value += basePluie;
+                    totals.protection_pluie.details.components.push({ label: refItem?.nom || item.nom, value: basePluie });
+                }
+                if (baseFroid !== 0) {
+                    totals.protection_froid.value += baseFroid;
+                    totals.protection_froid.details.components.push({ label: refItem?.nom || item.nom, value: baseFroid });
+                }
+                if (baseChaleur !== 0) {
+                    totals.protection_chaleur.value += baseChaleur;
+                    totals.protection_chaleur.details.components.push({ label: refItem?.nom || item.nom, value: baseChaleur });
                 }
 
                 // Check char_values for Discretion and Magic Bonuses
@@ -323,7 +355,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     if (discKey) {
                         const val = item.char_values[discKey] || 0;
                         totals.discretion.value += val;
-                        totals.discretion.details.components.push({ label: item.nom, value: val });
+                        totals.discretion.details.components.push({ label: refItem?.nom || item.nom, value: val });
                     }
 
                     // Magie Physique (mag_phy)
@@ -331,7 +363,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     if (magPhyKey) {
                         const val = item.char_values[magPhyKey] || 0;
                         totals.magie_physique.value += val;
-                        totals.magie_physique.details.components.push({ label: item.nom, value: val });
+                        totals.magie_physique.details.components.push({ label: refItem?.nom || item.nom, value: val });
                     }
 
                     // Magie Psychique (mag_psy)
@@ -339,7 +371,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     if (magPsyKey) {
                         const val = item.char_values[magPsyKey] || 0;
                         totals.magie_psychique.value += val;
-                        totals.magie_psychique.details.components.push({ label: item.nom, value: val });
+                        totals.magie_psychique.details.components.push({ label: refItem?.nom || item.nom, value: val });
                     }
 
                     // Resistance Magique (rm)
@@ -347,7 +379,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     if (rmKey) {
                         const val = item.char_values[rmKey] || 0;
                         totals.resistance_magique.value += val;
-                        totals.resistance_magique.details.components.push({ label: item.nom, value: val });
+                        totals.resistance_magique.details.components.push({ label: refItem?.nom || item.nom, value: val });
                     }
 
                     // Marche
@@ -355,7 +387,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     if (marcheKey) {
                         const val = item.char_values[marcheKey] || 0;
                         totals.marche.value += val;
-                        totals.marche.details.components.push({ label: item.nom, value: val });
+                        totals.marche.details.components.push({ label: refItem?.nom || item.nom, value: val });
                     }
 
                     // Course
@@ -363,7 +395,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     if (courseKey) {
                         const val = item.char_values[courseKey] || 0;
                         totals.course.value += val;
-                        totals.course.details.components.push({ label: item.nom, value: val });
+                        totals.course.details.components.push({ label: refItem?.nom || item.nom, value: val });
                     }
                 }
             }
@@ -495,7 +527,10 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                             computedMagic={{
                                 magie_physique: computedStats.magie_physique,
                                 magie_psychique: computedStats.magie_psychique,
-                                resistance_magique: computedStats.resistance_magique
+                                resistance_magique: computedStats.resistance_magique,
+                                protection_pluie: computedStats.protection_pluie,
+                                protection_froid: computedStats.protection_froid,
+                                protection_chaleur: computedStats.protection_chaleur
                             }}
                             onChange={(magic) => setData({ ...data, magic })}
                         />

@@ -8,31 +8,33 @@ interface AccessoiresTableProps {
     onItemsChange: (items: Equipement[]) => void;
     referenceOptions: RefEquipement[];
     defaultItem?: Partial<Equipement>;
+    onRemove?: (uid: string) => void;
 }
 
-export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem }) => {
+export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem, onRemove }) => {
 
     const handleAddRow = () => {
         const newItem: Equipement = {
-            id: uuidv4(),
+            uid: uuidv4(),
+            id: '',
             refId: 0,
-            originalRefId: 0,
-            nom: '',
-            poids: 0,
-            esquive_bonus: 0,
-            degats_pr: '',
-            equipement_type: 'Autre',
-            equipe: true,
-            rupture: '',
-            modif_rupture: '',
-            description: '',
+            equipement_type: 'Accessoires',
+            modif_pi: 0,
+            modif_rupture: 0,
+            modif_pr_sol: 0,
+            modif_pr_mag: 0,
+            modif_pr_spe: 0,
             ...defaultItem
         };
         onItemsChange([...items, newItem]);
     };
 
-    const handleRemoveRow = (id: string) => {
-        onItemsChange(items.filter(item => item.id !== id));
+    const handleRemoveRow = (uid: string) => {
+        if (onRemove) {
+            onRemove(uid);
+        } else {
+            onItemsChange(items.filter(item => item.uid !== uid));
+        }
     };
 
     const handleRemoveLastRow = () => {
@@ -41,28 +43,17 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
         }
     };
 
-    const handleSelectChange = (id: string, refIdStr: string) => {
+    const handleSelectChange = (uid: string, refIdStr: string) => {
         const refId = parseInt(refIdStr);
         const refItem = referenceOptions.find(r => r.id === refId);
 
         if (refItem) {
             onItemsChange(items.map(item => {
-                if (item.id === id) {
+                if (item.uid === uid) {
                     return {
                         ...item,
                         refId: refItem.id,
-                        originalRefId: refItem.originalRefId || 0,
-                        nom: refItem.nom,
-                        poids: refItem.poids,
-                        esquive_bonus: refItem.esquive_bonus,
-                        degats_pr: refItem.degats_pr,
-                        rupture: refItem.rupture || refItem.raw.details?.rupture || '',
-                        description: refItem.description,
-                        modif_pr_sol: '',
-                        modif_pr_spe: '',
-                        modif_pr_mag: '',
-                        modif_rupture: '',
-                        char_values: refItem.raw.caracteristiques // Copy base characteristics
+                        equipement_type: 'Accessoires', // Force correct type
                     };
                 }
                 return item;
@@ -70,20 +61,15 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
         } else {
             // Reset to default if cleared
             onItemsChange(items.map(item => {
-                if (item.id === id) {
+                if (item.uid === uid) {
                     return {
                         ...item,
                         refId: 0,
-                        nom: '',
-                        poids: 0,
-                        esquive_bonus: 0,
-                        degats_pr: '',
-                        rupture: '',
-                        modif_pr_sol: '',
-                        modif_pr_spe: '',
-                        modif_pr_mag: '',
-                        modif_rupture: '',
-                        description: ''
+                        modif_pr_sol: 0,
+                        modif_pr_spe: 0,
+                        modif_pr_mag: 0,
+                        modif_rupture: 0,
+                        equipement_type: 'Accessoires'
                     };
                 }
                 return item;
@@ -91,9 +77,9 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
         }
     };
 
-    const handleUpdateField = (id: string, field: keyof Equipement, value: any) => {
+    const handleUpdateField = (uid: string, field: keyof Equipement, value: any) => {
         onItemsChange(items.map(item => {
-            if (item.id === id) {
+            if (item.uid === uid) {
                 return { ...item, [field]: value };
             }
             return item;
@@ -104,6 +90,13 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
     const getRefValue = (refId: number, field: keyof RefEquipement): any => {
         const r = referenceOptions.find(o => o.id === refId);
         return r ? r[field] : '';
+    };
+
+    const calculateTotalPr = (base: number | undefined, modif: number | undefined): string | number => {
+        const baseVal = parseInt(String(base || 0), 10);
+        const modifVal = parseInt(String(modif || 0), 10);
+        const total = baseVal + modifVal;
+        return total !== 0 ? total : '-';
     };
 
     return (
@@ -155,61 +148,55 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
                     <tbody className="text-ink">
                         {items.map((item) => {
                             const refRupture = getRefValue(item.refId, 'rupture');
-                            // Use degats_pr for PR Sol as per ProtectionsTable logic if that's where it's stored?
-                            // Wait, in ProtectionsTable: degats_pr: refItem.degats_pr, // This is PR Sol for armors
-                            // Let's verify if Accessoires use degats_pr for PR Sol or if they use pr_sol field directly?
-                            // In seeds.rs: degats_pr = item.degats.or(item.pr).unwrap_or_default();
-                            // In Accessoires, "pr_sol": "0". "pr" alias is "pr_sol".
-                            // So degats_pr holds Pr Sol.
-                            const basePrSol = getRefValue(item.refId, 'degats_pr');
+                            const basePrSol = getRefValue(item.refId, 'pr_sol');
                             const basePrSpe = getRefValue(item.refId, 'pr_spe');
                             const basePrMag = getRefValue(item.refId, 'pr_mag');
 
                             return (
-                                <tr key={item.id} className="border-b border-leather-light/30 hover:bg-leather/5">
-                                    <td className="p-2 text-xs text-ink-light">{item.originalRefId || item.refId || '-'}</td>
-                                    <td className="p-2 text-sm italic">{getRefValue(item.refId, 'item_type') || item.equipement_type}</td>
-                                    <td className="p-2 w-48 max-w-[12rem]" title={getRefValue(item.refId, 'description')}>
+                                <tr key={item.uid} className="border-b border-leather-light/30 hover:bg-leather/5">
+                                    <td className="p-2 text-xs text-ink-light">{getRefValue(item.refId, 'ref_id') || '-'}</td>
+                                    <td className="p-2 text-sm italic">{getRefValue(item.refId, 'type') || item.equipement_type}</td>
+                                    <td className="p-2 w-48 max-w-[12rem]" title={getRefValue(item.refId, 'effet')}>
                                         <SearchableSelect
                                             options={referenceOptions.map(r => ({ id: r.id, label: r.nom }))}
                                             value={item.refId}
-                                            onChange={(val) => handleSelectChange(item.id, val)}
+                                            onChange={(val) => handleSelectChange(item.uid, val)}
                                             className="w-full"
                                             direction="up" // Force open upwards
                                         />
                                     </td>
 
                                     {/* PR Solide */}
-                                    <td className="p-2 text-center">{basePrSol || '-'}</td>
+                                    <td className="p-2 text-center">{calculateTotalPr(basePrSol, item.modif_pr_sol)}</td>
                                     <td className="p-2">
                                         <input
                                             type="text"
                                             value={item.modif_pr_sol || ''}
-                                            onChange={(e) => handleUpdateField(item.id, 'modif_pr_sol', e.target.value)}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_pr_sol', e.target.value)}
                                             className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
                                             placeholder="+0"
                                         />
                                     </td>
 
                                     {/* PR Spéciale */}
-                                    <td className="p-2 text-center">{basePrSpe || '-'}</td>
+                                    <td className="p-2 text-center">{calculateTotalPr(basePrSpe, item.modif_pr_spe)}</td>
                                     <td className="p-2">
                                         <input
                                             type="text"
                                             value={item.modif_pr_spe || ''}
-                                            onChange={(e) => handleUpdateField(item.id, 'modif_pr_spe', e.target.value)}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_pr_spe', e.target.value)}
                                             className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
                                             placeholder="+0"
                                         />
                                     </td>
 
                                     {/* PR Magique */}
-                                    <td className="p-2 text-center">{basePrMag || '-'}</td>
+                                    <td className="p-2 text-center">{calculateTotalPr(basePrMag, item.modif_pr_mag)}</td>
                                     <td className="p-2">
                                         <input
                                             type="text"
                                             value={item.modif_pr_mag || ''}
-                                            onChange={(e) => handleUpdateField(item.id, 'modif_pr_mag', e.target.value)}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_pr_mag', e.target.value)}
                                             className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
                                             placeholder="+0"
                                         />
@@ -221,19 +208,19 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
                                         <input
                                             type="text"
                                             value={item.modif_rupture || ''}
-                                            onChange={(e) => handleUpdateField(item.id, 'modif_rupture', e.target.value)}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_rupture', e.target.value)}
                                             className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
                                             placeholder="+0"
                                         />
                                     </td>
 
-                                    <td className="p-2 text-sm max-w-[200px] truncate" title={getRefValue(item.refId, 'description')}>
-                                        {getRefValue(item.refId, 'description') || ''}
+                                    <td className="p-2 text-sm max-w-[200px] truncate" title={getRefValue(item.refId, 'effet')}>
+                                        {getRefValue(item.refId, 'effet') || ''}
                                     </td>
 
                                     <td className="p-2 text-center">
                                         <button
-                                            onClick={() => handleRemoveRow(item.id)}
+                                            onClick={() => handleRemoveRow(item.uid)}
                                             className="text-red-600 hover:text-red-800 font-bold"
                                         >
                                             &times;

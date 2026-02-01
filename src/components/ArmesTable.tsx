@@ -9,32 +9,33 @@ interface ArmesTableProps {
     referenceOptions: RefEquipement[];
     defaultItem?: Partial<Equipement>;
     characterForce: number;
+    onRemove?: (uid: string) => void;
 }
 
-export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem, characterForce }) => {
+export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem, characterForce, onRemove }) => {
 
     const handleAddRow = () => {
         const newItem: Equipement = {
-            id: uuidv4(),
+            uid: uuidv4(),
+            id: '',
             refId: 0,
-            originalRefId: 0,
-            nom: '',
-            poids: 0,
-            esquive_bonus: 0,
-            degats_pr: '',
-            equipement_type: 'Arme',
-            equipe: true,
-            modif_pi: '',
-            bonus_fo: 0,
-            rupture: '',
-            modif_rupture: '',
+            equipement_type: 'Armes',
+            modif_pi: 0,
+            modif_rupture: 0,
+            modif_pr_sol: 0,
+            modif_pr_mag: 0,
+            modif_pr_spe: 0,
             ...defaultItem
         };
         onItemsChange([...items, newItem]);
     };
 
-    const handleRemoveRow = (id: string) => {
-        onItemsChange(items.filter(item => item.id !== id));
+    const handleRemoveRow = (uid: string) => {
+        if (onRemove) {
+            onRemove(uid);
+        } else {
+            onItemsChange(items.filter(item => item.uid !== uid));
+        }
     };
 
     const handleRemoveLastRow = () => {
@@ -43,25 +44,17 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
         }
     };
 
-    const handleSelectChange = (id: string, refIdStr: string) => {
+    const handleSelectChange = (uid: string, refIdStr: string) => {
         const refId = parseInt(refIdStr);
         const refItem = referenceOptions.find(r => r.id === refId);
 
         if (refItem) {
             onItemsChange(items.map(item => {
-                if (item.id === id) {
+                if (item.uid === uid) {
                     return {
                         ...item,
                         refId: refItem.id,
-                        originalRefId: refItem.originalRefId || 0,
-                        nom: refItem.nom,
-                        poids: refItem.poids,
-                        esquive_bonus: refItem.esquive_bonus,
-                        degats_pr: refItem.degats_pr,
-                        // Attempt to extract rupture/details from raw if standard fields don't have it
-                        rupture: refItem.rupture || refItem.raw.details?.rupture || '',
-                        description: refItem.description,
-                        char_values: refItem.raw.caracteristiques // Copy base characteristics
+                        // Removed redundant fields
                     };
                 }
                 return item;
@@ -69,19 +62,12 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
         } else {
             // Reset to default if cleared
             onItemsChange(items.map(item => {
-                if (item.id === id) {
+                if (item.uid === uid) {
                     return {
                         ...item,
                         refId: 0,
-                        nom: '',
-                        poids: 0,
-                        esquive_bonus: 0,
-                        degats_pr: '',
-                        rupture: '',
-                        modif_pi: '',
-                        bonus_fo: 0,
-                        modif_rupture: '',
-                        description: ''
+                        modif_pi: 0,
+                        modif_rupture: 0
                     };
                 }
                 return item;
@@ -89,9 +75,9 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
         }
     };
 
-    const handleUpdateField = (id: string, field: keyof Equipement, value: any) => {
+    const handleUpdateField = (uid: string, field: keyof Equipement, value: any) => {
         onItemsChange(items.map(item => {
-            if (item.id === id) {
+            if (item.uid === uid) {
                 return { ...item, [field]: value };
             }
             return item;
@@ -115,7 +101,7 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
         }
 
         // 3. Calculate Total PI
-        const totalPi = (refPi || 0) + modifVal + (bonusFo || 0);
+        const totalPi = parseInt(String(refPi || 0), 10) + modifVal + (bonusFo || 0);
 
         // 4. Format
         if (totalPi > 0) {
@@ -126,25 +112,33 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
         return dicePart;
     };
 
-    // Helper to get Ref PI
+    // --- Fonctions Utilitaires ---
+
+    // Récupère une valeur dans la base de référence pour un ID donné.
+    // C'est grâce à ça que l'affichage reste à jour même si la base change.
     const getRefPi = (refId: number): number => {
         const r = referenceOptions.find(o => o.id === refId);
-        return r ? r.pi : 0;
+        return r?.pi || 0;
     };
 
     const getRefRupture = (refId: number): string => {
         const r = referenceOptions.find(o => o.id === refId);
-        return r ? r.rupture : '';
+        return r?.rupture || '';
     };
 
     const getRefDescription = (refId: number): string => {
         const r = referenceOptions.find(o => o.id === refId);
-        return r ? r.description : '';
+        return r?.raw.details?.description || '';
     };
 
     const getRefCategory = (refId: number): string => {
         const r = referenceOptions.find(o => o.id === refId);
         return r ? r.category : '';
+    };
+
+    const getRefValue = (refId: number, field: keyof RefEquipement): any => {
+        const r = referenceOptions.find(o => o.id === refId);
+        return r ? r[field] : '';
     };
 
     return (
@@ -189,24 +183,20 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
                     </thead>
                     <tbody className="text-ink">
                         {items.map((item, index) => {
-                            // Calculate Bonus FO
-                            const itemForceBonus = item.char_values?.force || 0;
-                            const totalForce = characterForce + itemForceBonus;
-                            const bonusFo = Math.max(0, totalForce - 12);
-
                             return (
-                                <tr key={item.id} className="border-b border-leather-light/30 hover:bg-leather/5">
+                                <tr key={item.uid} className="border-b border-leather-light/30 hover:bg-leather/5">
                                     <td className="p-2 font-bold text-leather-dark">A{index + 1}</td>
-                                    <td className="p-2 text-xs text-ink-light">{item.originalRefId || item.refId || '-'}</td>
+                                    {/* Display Ref ID (Supabase) if available, or just '-' */}
+                                    <td className="p-2 text-xs text-ink-light">{getRefValue(item.refId, 'ref_id') || '-'}</td>
                                     <td className="p-2 text-sm italic">{(() => {
                                         const r = referenceOptions.find(o => o.id === item.refId);
-                                        return r?.item_type || getRefCategory(item.refId) || item.equipement_type;
+                                        return r?.type || getRefCategory(item.refId) || item.equipement_type;
                                     })()}</td>
                                     <td className="p-2 w-48 max-w-[12rem]">
                                         <SearchableSelect
                                             options={referenceOptions.map(r => ({ id: r.id, label: r.nom }))}
                                             value={item.refId}
-                                            onChange={(val) => handleSelectChange(item.id, val)}
+                                            onChange={(val) => handleSelectChange(item.uid, val)}
                                             className="w-full"
                                         />
                                     </td>
@@ -214,7 +204,16 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
                                         {/* Display Dice + Base PI (e.g. "1D + 3") */}
                                         {(() => {
                                             const pi = getRefPi(item.refId);
-                                            const dice = item.degats_pr;
+                                            const r = referenceOptions.find(o => o.id === item.refId);
+                                            // Ensure degats is fetched correctly (it might be nested or direct depending on final mock)
+                                            // Based on Inventory mapping: degats_pr = (protections.pr_sol || degats.degats).
+                                            // But here we need just the dice part for display?
+                                            // Or we just display the string 'degats_pr' from ref?
+                                            // The previous code displayed 'item.degats_pr'.
+                                            // Now we must get it from ref.
+                                            // Let's use a helper or direct access.
+                                            const dice = r?.degats || '';
+
                                             if (pi > 0 && dice) return `${dice} + ${pi}`;
                                             if (pi < 0 && dice) return `${dice} - ${Math.abs(pi)}`;
                                             if (pi !== 0 && !dice) return `${pi}`;
@@ -225,23 +224,40 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
                                         <input
                                             type="text"
                                             value={item.modif_pi || ''}
-                                            onChange={(e) => handleUpdateField(item.id, 'modif_pi', e.target.value)}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_pi', parseInt(e.target.value) || 0)}
                                             className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
                                             placeholder="+0"
                                         />
                                     </td>
                                     <td className="p-2 text-center text-ink-light font-mono">
-                                        {bonusFo > 0 ? `+${bonusFo}` : '0'}
+                                        {(() => {
+                                            const r = referenceOptions.find(o => o.id === item.refId);
+                                            // Access nested caracs safely
+                                            const itemForceBonus = parseInt(String(r?.raw.caracteristiques?.force || 0), 10);
+                                            const totalForce = parseInt(String(characterForce), 10) + itemForceBonus;
+                                            const bonusFo = Math.max(0, totalForce - 12);
+                                            return bonusFo > 0 ? `+${bonusFo}` : '0';
+                                        })()}
                                     </td>
                                     <td className="p-2 font-bold text-leather">
-                                        {calculateTotal(item.degats_pr, getRefPi(item.refId), item.modif_pi || '', bonusFo)}
+                                        {(() => {
+                                            const r = referenceOptions.find(o => o.id === item.refId);
+                                            const degats = r?.degats || ''; // Use mapped value
+                                            const refPi = r?.pi || 0;
+
+                                            const itemForceBonus = parseInt(String(r?.raw.caracteristiques?.force || 0), 10);
+                                            const totalForce = parseInt(String(characterForce), 10) + itemForceBonus;
+                                            const bonusFo = Math.max(0, totalForce - 12);
+
+                                            return calculateTotal(degats, refPi, String(item.modif_pi || 0), bonusFo);
+                                        })()}
                                     </td>
                                     <td className="p-2">{getRefRupture(item.refId) || '-'}</td>
                                     <td className="p-2">
                                         <input
                                             type="text"
                                             value={item.modif_rupture || ''}
-                                            onChange={(e) => handleUpdateField(item.id, 'modif_rupture', e.target.value)}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_rupture', parseInt(e.target.value) || 0)}
                                             className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
                                             placeholder="+0"
                                         />
@@ -251,7 +267,7 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
                                     </td>
                                     <td className="p-2 text-center">
                                         <button
-                                            onClick={() => handleRemoveRow(item.id)}
+                                            onClick={() => handleRemoveRow(item.uid)}
                                             className="text-red-600 hover:text-red-800 font-bold"
                                         >
                                             &times;

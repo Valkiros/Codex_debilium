@@ -36,7 +36,7 @@ struct SourceItem {
 
 pub fn seed_reference_data(conn: &mut Connection, _app_handle: AppHandle) -> Result<(), String> {
     let count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM ref_equipements", [], |row| row.get(0))
+        .query_row("SELECT COUNT(*) FROM ref_items", [], |row| row.get(0))
         .map_err(|e| e.to_string())?;
     if count > 0 {
         return Ok(()); // Already seeded
@@ -144,7 +144,7 @@ pub fn seed_reference_data(conn: &mut Connection, _app_handle: AppHandle) -> Res
             let aura = item.aura.unwrap_or_default();
 
             tx.execute(
-                "INSERT INTO ref_equipements (category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracteristiques, original_ref_id, aura)
+                "INSERT INTO ref_items (category, nom, poids, pi, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracteristiques, original_ref_id, aura)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
                 params![category, item.nom, poids_kg, pi_value, rupture, esquive_bonus, degats_pr, pr_mag, pr_spe, item_type, description, caracs_str, original_ref_id, aura],
             ).map_err(|e| e.to_string())?;

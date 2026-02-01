@@ -9,10 +9,15 @@ import { CharacterSelection } from "./components/CharacterSelection";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { UserProfile } from "./types";
 
+import { AdminPanel } from "./components/AdminPanel"; // Import AdminPanel (to be created)
+
+// ... (existing imports)
+
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [view, setView] = useState<'selection' | 'sheet' | 'admin'>('selection'); // New view state
   const [isDirty, setIsDirty] = useState(false);
 
   const [showConfirm, setShowConfirm] = useState(false);
@@ -66,6 +71,15 @@ function App() {
     };
   }, [isDirty]);
 
+  // Update view when character is selected/deselected
+  useEffect(() => {
+    if (selectedCharacterId) {
+      setView('sheet');
+    } else if (view !== 'admin') {
+      setView('selection');
+    }
+  }, [selectedCharacterId]);
+
   const runWithCheck = (action: () => void) => {
     if (isDirty) {
       setPendingAction(() => action);
@@ -79,6 +93,7 @@ function App() {
     runWithCheck(async () => {
       await supabase.auth.signOut();
       setSelectedCharacterId(null);
+      setView('selection');
       setIsDirty(false);
     });
   };
@@ -86,6 +101,15 @@ function App() {
   const handleChangeCharacter = () => {
     runWithCheck(() => {
       setSelectedCharacterId(null);
+      setView('selection');
+      setIsDirty(false);
+    });
+  };
+
+  const handleAdminView = () => {
+    runWithCheck(() => {
+      setSelectedCharacterId(null);
+      setView('admin');
       setIsDirty(false);
     });
   };
@@ -94,10 +118,22 @@ function App() {
     return <Login />;
   }
 
-  if (!selectedCharacterId) {
-    return (
+  // Render Logic based on View
+  let content;
+  if (view === 'admin') {
+    content = <AdminPanel onBack={handleChangeCharacter} />;
+  } else if (selectedCharacterId) {
+    content = (
+      <CharacterSheet
+        ref={sheetRef}
+        characterId={selectedCharacterId}
+        onDirtyChange={setIsDirty}
+      />
+    );
+  } else {
+    content = (
       <CharacterSelection
-        onSelect={(id) => { setSelectedCharacterId(id); setIsDirty(false); }}
+        onSelect={(id) => { setSelectedCharacterId(id); }}
         onLogout={handleLogout}
       />
     );
@@ -116,12 +152,34 @@ function App() {
         </div>
         <div className="flex gap-4 items-center">
           <div id="header-actions"></div>
-          <button
-            onClick={handleChangeCharacter}
-            className="px-3 py-1 bg-parchment text-leather rounded text-sm hover:bg-white cursor-pointer"
-          >
-            Changer de personnage
-          </button>
+
+          {userProfile?.role === 'admin' && view !== 'admin' && (
+            <button
+              onClick={handleAdminView}
+              className="px-3 py-1 bg-[#cca43b] text-leather-dark font-bold rounded text-sm hover:bg-[#eebb44] cursor-pointer"
+            >
+              Base de Données (Admin)
+            </button>
+          )}
+
+          {view === 'sheet' && (
+            <button
+              onClick={handleChangeCharacter}
+              className="px-3 py-1 bg-parchment text-leather rounded text-sm hover:bg-white cursor-pointer"
+            >
+              Changer de personnage
+            </button>
+          )}
+
+          {view === 'admin' && (
+            <button
+              onClick={handleChangeCharacter}
+              className="px-3 py-1 bg-parchment text-leather rounded text-sm hover:bg-white cursor-pointer"
+            >
+              Retour Accueil
+            </button>
+          )}
+
           <button
             onClick={handleLogout}
             className="px-3 py-1 bg-parchment text-leather rounded text-sm hover:bg-white cursor-pointer"
@@ -131,12 +189,9 @@ function App() {
         </div>
       </header>
       <main className="flex-1 overflow-auto bg-parchment-pattern">
-        <CharacterSheet
-          ref={sheetRef}
-          characterId={selectedCharacterId}
-          onDirtyChange={setIsDirty}
-        />
+        {content}
       </main>
+
 
       <ConfirmModal
         isOpen={showConfirm}
