@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { RefEquipement } from '../types';
 import { supabase } from '../lib/supabase';
 import { ConfirmModal } from './ConfirmModal';
+import { CATEGORY_SCHEMAS } from './AdminSchemas';
+import { TableColumnFilter } from './TableColumnFilter';
 
 interface AdminPanelProps {
     onBack: () => void;
@@ -12,12 +14,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     const [items, setItems] = useState<RefEquipement[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [selectedCategory, setSelectedCategory] = useState<string>('Armes');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Partial<RefEquipement> | null>(null);
     const [syncing, setSyncing] = useState(false);
 
-    // Confirm Modal State
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(50);
+
+    // Filters state: key is the field key, value is array of selected strings
+    const [filters, setFilters] = useState<Record<string, string[]>>({});
+
     const [confirmState, setConfirmState] = useState<{
         isOpen: boolean;
         title: string;
@@ -77,10 +85,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         setLoading(true);
         try {
             const rawData = await invoke('get_ref_items') as any[];
-            console.log("Raw items from backend:", rawData);
+            // console.log("Raw items from backend:", rawData); // Disabled for performance
 
             const mappedItems: RefEquipement[] = rawData.map(item => {
-                // Helper to safely extract values
                 const d = item.degats || {};
                 const c = item.caracteristiques || {};
                 const p = item.protections || {};
@@ -94,11 +101,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     category: item.category,
                     nom: item.nom,
 
-                    // Dégâts
                     degats: d.degats || '',
                     pi: d.pi || 0,
 
-                    // Caractéristiques
                     courage: c.courage || 0,
                     intelligence: c.intelligence || 0,
                     charisme: c.charisme || 0,
@@ -114,7 +119,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     mvt: c.mvt || 0,
                     discretion: c.discretion || 0,
 
-                    // Protections
                     pr_sol: p.pr_sol || 0,
                     pr_mag: p.pr_mag || 0,
                     pr_spe: p.pr_spe || 0,
@@ -122,11 +126,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     froid: p.froid || 0,
                     chaleur: p.chaleur || 0,
 
-                    // Prix et monnaie
                     prix: pi.prix || 0,
                     monnaie: pi.monnaie || '',
 
-                    // Details
                     niveau: det.niveau || 0,
                     restriction: det.restriction || '',
                     origine_rarete: det["origine/rarete"] || '',
@@ -146,7 +148,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     recolte: det.recolte || '',
                     peremption: det.peremption || '',
 
-                    // Craft
                     composants: craft.composants || '',
                     outils: craft.outils || '',
                     qualifications: craft.qualifications || '',
@@ -156,20 +157,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     xp_confection: craft.xp_confection || 0,
                     xp_reparation: craft.xp_reparation || 0,
 
-                    // Keep raw for reference if needed
                     raw: item
                 };
             });
 
             setItems(mappedItems);
-
-            // Default to first category if not already set or valid
-            if (mappedItems.length > 0) {
-                const categories = Array.from(new Set(mappedItems.map(i => i.category))).sort();
-                if (categories.length > 0) {
-                    setSelectedCategory(prev => categories.includes(prev) && prev !== 'all' ? prev : categories[0]);
-                }
-            }
         } catch (error) {
             console.error("Failed to fetch items:", error);
             alert("Erreur lors du chargement des objets: " + error);
@@ -181,6 +173,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     useEffect(() => {
         fetchItems();
     }, []);
+
+    // Reset pagination when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, selectedCategory, filters]);
 
     const handleDelete = (id: number) => {
         setConfirmState({
@@ -207,7 +204,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         e.preventDefault();
         if (!editingItem) return;
 
-        // Construct JSON objects for Backend
         const degats = {
             pi: editingItem.pi || 0,
             degats: editingItem.degats || ''
@@ -276,9 +272,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             peremption: editingItem.peremption || ''
         };
 
-        // Note: We cast refs to prevent TS errors, as RefEquipement in types.ts is still flat
-        // but backend expects JSON objects. We rely on the backend command handling the JSON conversion/parsing.
-        // Wait, backend expects JSON *Value* which Tauri handles automatically if we pass JS objects.
         const payload = {
             category: editingItem.category,
             ref_id: editingItem.ref_id,
@@ -305,7 +298,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             fetchItems();
         } catch (error) {
             console.error("Save failed:", error);
-            alert("Erreur lors de la sauvegarde: " + error);
+            alert("Erreur lors du sauvegarde: " + error);
         }
     };
 
@@ -314,417 +307,96 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         setIsModalOpen(true);
     };
 
-    // Modifier plus tard pour faire des schémas par catégorie
     const openNew = () => {
         setEditingItem({
-            category: '',
+            category: selectedCategory,
             nom: '',
             poids: 0,
             pi: 0,
-            rupture: '',
-            pr_mag: 0,
-            pr_spe: 0,
-            type: '',
-            aura: '',
-            pluie: 0,
-            froid: 0,
-            chaleur: 0
         });
         setIsModalOpen(true);
     };
 
-    const filteredItems = items.filter(item => {
-        const matchesSearch = item.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.category.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
+    const currentSchema = useMemo(() => {
+        return CATEGORY_SCHEMAS[selectedCategory] || CATEGORY_SCHEMAS['Default'];
+    }, [selectedCategory]);
 
-    const uniqueCategories = Array.from(new Set(items.map(i => i.category))).sort();
+    // Compute unique values for filtering
+    const uniqueValues = useMemo(() => {
+        const values: Record<string, string[]> = {};
 
-    const renderTableHeader = () => {
-        switch (selectedCategory) {
-            case 'Accessoires':
-                return (
-                    <>
-                        <th className="p-3 text-center">Niveau</th>
-                        <th className="p-3 text-center">Restriction</th>
-                        <th className="p-3 text-center">Origine/Rareté</th>
-                        <th className="p-3 text-center">Type</th>
-                        <th className="p-3 text-center">Aura</th>
-                        <th className="p-3 text-center">Prix</th>
-                        <th className="p-3 text-center">Monnaie</th>
-                        <th className="p-3 text-center">PR sol</th>
-                        <th className="p-3 text-center">PR spé</th>
-                        <th className="p-3 text-center">PR mag</th>
-                        <th className="p-3 text-center">PI</th>
-                        <th className="p-3 text-center">Courage</th>
-                        <th className="p-3 text-center">Intelligence</th>
-                        <th className="p-3 text-center">Charisme</th>
-                        <th className="p-3 text-center">Adresse</th>
-                        <th className="p-3 text-center">Force</th>
-                        <th className="p-3 text-center">Perception</th>
-                        <th className="p-3 text-center">Esquive</th>
-                        <th className="p-3 text-center">Attaque</th>
-                        <th className="p-3 text-center">Parade</th>
-                        <th className="p-3 text-center">Magie psy</th>
-                        <th className="p-3 text-center">Magie phy</th>
-                        <th className="p-3 text-center">Résistance magique</th>
-                        <th className="p-3 text-center">Mouvement</th>
-                        <th className="p-3 text-center">Discrétion</th>
-                        <th className="p-3 text-center">Pluie</th>
-                        <th className="p-3 text-center">Froid</th>
-                        <th className="p-3 text-center">Chaleur</th>
-                        <th className="p-3 text-center">Effet</th>
-                        <th className="p-3 text-center">Rupture</th>
-                        <th className="p-3 text-center">Poids</th>
-                        <th className="p-3 text-center">Composants</th>
-                        <th className="p-3 text-center">Outils</th>
-                        <th className="p-3 text-center">Qualifications</th>
-                        <th className="p-3 text-center">Difficulté</th>
-                        <th className="p-3 text-center">Temps de confection</th>
-                        <th className="p-3 text-center">Confection</th>
-                        <th className="p-3 text-center">XP confection</th>
-                        <th className="p-3 text-center">XP réparation</th>
-                    </>
-                );
-            case 'Armes':
-                return (
-                    <>
-                        <th className="p-3 text-center">Niveau</th>
-                        <th className="p-3 text-center">Restriction</th>
-                        <th className="p-3 text-center">Origine/Rareté</th>
-                        <th className="p-3 text-center">Type</th>
-                        <th className="p-3 text-center">Aura</th>
-                        <th className="p-3 text-center">Mains</th>
-                        <th className="p-3 text-center">Prix</th>
-                        <th className="p-3 text-center">Monnaie</th>
-                        <th className="p-3 text-center">Dégâts</th>
-                        <th className="p-3 text-center">Pi</th>
-                        <th className="p-3 text-center">Courage</th>
-                        <th className="p-3 text-center">Intelligence</th>
-                        <th className="p-3 text-center">Charisme</th>
-                        <th className="p-3 text-center">Adresse</th>
-                        <th className="p-3 text-center">Force</th>
-                        <th className="p-3 text-center">Perception</th>
-                        <th className="p-3 text-center">Esquive</th>
-                        <th className="p-3 text-center">Attaque</th>
-                        <th className="p-3 text-center">Parade</th>
-                        <th className="p-3 text-center">Effet</th>
-                        <th className="p-3 text-center">Rupture</th>
-                        <th className="p-3 text-center">Poids</th>
-                        <th className="p-3 text-center">Composants</th>
-                        <th className="p-3 text-center">Outils</th>
-                        <th className="p-3 text-center">Qualifications</th>
-                        <th className="p-3 text-center">Difficulté</th>
-                        <th className="p-3 text-center">Temps de confection</th>
-                        <th className="p-3 text-center">Confection</th>
-                        <th className="p-3 text-center">XP confection</th>
-                        <th className="p-3 text-center">XP réparation</th>
-                    </>
-                );
-            case 'Armes de jet':
-            case 'Boissons':
-            case 'Bouffes':
-            case 'Compétences':
-            case 'Ingrédients':
-            case 'Mains nues':
-                return (
-                    <>
-                        <th className="p-3 text-center">Niveau</th>
-                        <th className="p-3 text-center">Restriction</th>
-                        <th className="p-3 text-center">Origine/Rareté</th>
-                        <th className="p-3 text-center">Type</th>
-                        <th className="p-3 text-center">Aura</th>
-                        <th className="p-3 text-center">Mains</th>
-                        <th className="p-3 text-center">Prix</th>
-                        <th className="p-3 text-center">Monnaie</th>
-                        <th className="p-3 text-center">Dégâts</th>
-                        <th className="p-3 text-center">Pi</th>
-                        <th className="p-3 text-center">Courage</th>
-                        <th className="p-3 text-center">Intelligence</th>
-                        <th className="p-3 text-center">Charisme</th>
-                        <th className="p-3 text-center">Adresse</th>
-                        <th className="p-3 text-center">Force</th>
-                        <th className="p-3 text-center">Perception</th>
-                        <th className="p-3 text-center">Esquive</th>
-                        <th className="p-3 text-center">Attaque</th>
-                        <th className="p-3 text-center">Parade</th>
-                        <th className="p-3 text-center">Effet</th>
-                        <th className="p-3 text-center">Rupture</th>
-                        <th className="p-3 text-center">Poids</th>
-                        <th className="p-3 text-center">Composants</th>
-                        <th className="p-3 text-center">Outils</th>
-                        <th className="p-3 text-center">Qualifications</th>
-                        <th className="p-3 text-center">Difficulté</th>
-                        <th className="p-3 text-center">Temps de confection</th>
-                        <th className="p-3 text-center">Confection</th>
-                        <th className="p-3 text-center">XP confection</th>
-                        <th className="p-3 text-center">XP réparation</th>
-                    </>
-                );
-            case 'Munitions':
-            case 'Objets magiques':
-            case 'Objets spéciaux':
-            case 'Outils':
-            case 'Pièges':
-            case 'Potions':
-            case 'Protections':
-                return (
-                    <>
-                        <th className="p-3 text-center">Niveau</th>
-                        <th className="p-3 text-center">Restriction</th>
-                        <th className="p-3 text-center">Origine/Rareté</th>
-                        <th className="p-3 text-center">Type</th>
-                        <th className="p-3 text-center">Aura</th>
-                        <th className="p-3 text-center">Matière</th>
-                        <th className="p-3 text-center">Prix</th>
-                        <th className="p-3 text-center">Monnaie</th>
-                        <th className="p-3 text-center">PR sol</th>
-                        <th className="p-3 text-center">PR spé</th>
-                        <th className="p-3 text-center">PR mag</th>
-                        <th className="p-3 text-center">Courage</th>
-                        <th className="p-3 text-center">Intelligence</th>
-                        <th className="p-3 text-center">Charisme</th>
-                        <th className="p-3 text-center">Adresse</th>
-                        <th className="p-3 text-center">Force</th>
-                        <th className="p-3 text-center">Perception</th>
-                        <th className="p-3 text-center">Esquive</th>
-                        <th className="p-3 text-center">Attaque</th>
-                        <th className="p-3 text-center">Parade</th>
-                        <th className="p-3 text-center">Magie psy</th>
-                        <th className="p-3 text-center">Magie phy</th>
-                        <th className="p-3 text-center">Résistance magique</th>
-                        <th className="p-3 text-center">Mouvement</th>
-                        <th className="p-3 text-center">Discrétion</th>
-                        <th className="p-3 text-center">Pluie</th>
-                        <th className="p-3 text-center">Froid</th>
-                        <th className="p-3 text-center">Chaleur</th>
-                        <th className="p-3 text-center">Couvre</th>
-                        <th className="p-3 text-center">Effet</th>
-                        <th className="p-3 text-center">Rupture</th>
-                        <th className="p-3 text-center">Poids</th>
-                        <th className="p-3 text-center">Composants</th>
-                        <th className="p-3 text-center">Outils</th>
-                        <th className="p-3 text-center">Qualifications</th>
-                        <th className="p-3 text-center">Difficulté</th>
-                        <th className="p-3 text-center">Temps de confection</th>
-                        <th className="p-3 text-center">Confection</th>
-                        <th className="p-3 text-center">XP confection</th>
-                        <th className="p-3 text-center">XP réparation</th>
-                    </>
-                );
-            case 'Sacoches':
-            case 'Sacs':
+        // Add basic fields logic
+        values['nom'] = Array.from(new Set(items.map(i => i.category === selectedCategory ? i.nom : null).filter(Boolean))) as string[];
 
-            default: // cases 'all'
-                return (
-                    <>
-                        <th className="p-3">Type</th>
-                        <th className="p-3 text-center">Poids</th>
-                        <th className="p-3 text-center">Stats (PI/PR/Rupt)</th>
-                        <th className="p-3 text-center">Mag/Env</th>
-                    </>
-                );
+        // Add schema fields
+        currentSchema.forEach(field => {
+            const distinct = new Set<string>();
+            items.forEach(item => {
+                if (item.category === selectedCategory || selectedCategory === 'all') { // Filtering only for current view
+                    const val = (item as any)[field.key];
+                    if (val !== undefined && val !== null) {
+                        distinct.add(String(val));
+                    }
+                }
+            });
+            values[field.key as string] = Array.from(distinct).sort();
+        });
+        return values;
+    }, [items, selectedCategory, currentSchema]);
+
+
+    const filteredItems = useMemo(() => {
+        return items.filter(item => {
+            if (selectedCategory !== 'all' && item.category !== selectedCategory) return false;
+
+            // Global Search
+            const globalMatch = !searchTerm ||
+                item.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                String(item.ref_id).includes(searchTerm);
+
+            if (!globalMatch) return false;
+
+            // Excel-like Filters (Array inclusion)
+            for (const key in filters) {
+                const selectedOptions = filters[key];
+                if (selectedOptions && selectedOptions.length > 0) {
+                    const itemValue = String((item as any)[key] || '');
+                    if (!selectedOptions.includes(itemValue)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        });
+    }, [items, selectedCategory, searchTerm, filters]);
+
+    // Apply Pagination
+    const currentItems = useMemo(() => {
+        // If itemsPerPage is very large, show all
+        if (itemsPerPage > filteredItems.length) {
+            return filteredItems;
         }
+        const indexOfLastItem = currentPage * itemsPerPage;
+        const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+        return filteredItems.slice(indexOfFirstItem, Math.min(indexOfLastItem, filteredItems.length));
+    }, [filteredItems, currentPage, itemsPerPage]);
+
+    const uniqueCategories = useMemo(() => Array.from(new Set(items.map(i => i.category))).sort(), [items]);
+
+    const handleFilterChange = (key: string, values: string[]) => {
+        setFilters(prev => ({
+            ...prev,
+            [key]: values
+        }));
     };
 
-    const renderTableRow = (item: RefEquipement) => {
-        switch (selectedCategory) {
-            case 'Accessoires':
-                return (
-                    <>
-                        <td className="p-3 text-center">{item.niveau}</td>
-                        <td className="p-3 text-center">{item.restriction}</td>
-                        <td className="p-3 text-center">{item.origine_rarete}</td>
-                        <td className="p-3 text-center">{item.type}</td>
-                        <td className="p-3 text-center">{item.aura}</td>
-                        <td className="p-3 text-center">{item.prix}</td>
-                        <td className="p-3 text-center">{item.monnaie}</td>
-                        <td className="p-3 text-center">{item.pr_sol}</td>
-                        <td className="p-3 text-center">{item.pr_spe}</td>
-                        <td className="p-3 text-center">{item.pr_mag}</td>
-                        <td className="p-3 text-center">{item.pi}</td>
-                        <td className="p-3 text-center">{item.courage}</td>
-                        <td className="p-3 text-center">{item.intelligence}</td>
-                        <td className="p-3 text-center">{item.charisme}</td>
-                        <td className="p-3 text-center">{item.adresse}</td>
-                        <td className="p-3 text-center">{item.force}</td>
-                        <td className="p-3 text-center">{item.perception}</td>
-                        <td className="p-3 text-center">{item.esquive}</td>
-                        <td className="p-3 text-center">{item.attaque}</td>
-                        <td className="p-3 text-center">{item.parade}</td>
-                        <td className="p-3 text-center">{item.mag_psy}</td>
-                        <td className="p-3 text-center">{item.mag_phy}</td>
-                        <td className="p-3 text-center">{item.rm}</td>
-                        <td className="p-3 text-center">{item.mvt}</td>
-                        <td className="p-3 text-center">{item.discretion}</td>
-                        <td className="p-3 text-center font-bold text-blue-800">{item.pluie}</td>
-                        <td className="p-3 text-center font-bold text-blue-800">{item.froid}</td>
-                        <td className="p-3 text-center font-bold text-blue-800">{item.chaleur}</td>
-                        <td className="p-3 text-center">{item.effet}</td>
-                        <td className="p-3 text-center">{item.rupture}</td>
-                        <td className="p-3 text-center">{item.poids} g</td>
-                        <td className="p-3 text-center">{item.composants}</td>
-                        <td className="p-3 text-center">{item.outils}</td>
-                        <td className="p-3 text-center">{item.qualifications}</td>
-                        <td className="p-3 text-center">{item.difficulte}</td>
-                        <td className="p-3 text-center">{item.temps_de_confection}</td>
-                        <td className="p-3 text-center">{item.confection}</td>
-                        <td className="p-3 text-center">{item.xp_confection}</td>
-                        <td className="p-3 text-center">{item.xp_reparation}</td>
-                    </>
-                );
-            case 'Armes':
-                return (
-                    <>
-                        <td className="p-3 text-center">{item.niveau}</td>
-                        <td className="p-3 text-center">{item.restriction}</td>
-                        <td className="p-3 text-center">{item.origine_rarete}</td>
-                        <td className="p-3 text-center">{item.type}</td>
-                        <td className="p-3 text-center">{item.aura}</td>
-                        <td className="p-3 text-center">{item.mains}</td>
-                        <td className="p-3 text-center">{item.prix}</td>
-                        <td className="p-3 text-center">{item.monnaie}</td>
-                        <td className="p-3 text-center">{item.degats}</td>
-                        <td className="p-3 text-center">{item.pi}</td>
-                        <td className="p-3 text-center">{item.courage}</td>
-                        <td className="p-3 text-center">{item.intelligence}</td>
-                        <td className="p-3 text-center">{item.charisme}</td>
-                        <td className="p-3 text-center">{item.adresse}</td>
-                        <td className="p-3 text-center">{item.force}</td>
-                        <td className="p-3 text-center">{item.perception}</td>
-                        <td className="p-3 text-center">{item.esquive}</td>
-                        <td className="p-3 text-center">{item.attaque}</td>
-                        <td className="p-3 text-center">{item.parade}</td>
-                        <td className="p-3 text-center">{item.effet}</td>
-                        <td className="p-3 text-center">{item.rupture}</td>
-                        <td className="p-3 text-center">{item.poids} g</td>
-                        <td className="p-3 text-center">{item.composants}</td>
-                        <td className="p-3 text-center">{item.outils}</td>
-                        <td className="p-3 text-center">{item.qualifications}</td>
-                        <td className="p-3 text-center">{item.difficulte}</td>
-                        <td className="p-3 text-center">{item.temps_de_confection}</td>
-                        <td className="p-3 text-center">{item.confection}</td>
-                        <td className="p-3 text-center">{item.xp_confection}</td>
-                        <td className="p-3 text-center">{item.xp_reparation}</td>
-                    </>
-                );
-            case 'Armes de jet':
-            case 'Boissons':
-            case 'Bouffes':
-            case 'Compétences':
-            case 'Ingrédients':
-            case 'Mains nues':
-                return (
-                    <>
-                        <td className="p-3 text-center">{item.niveau}</td>
-                        <td className="p-3 text-center">{item.restriction}</td>
-                        <td className="p-3 text-center">{item.origine_rarete}</td>
-                        <td className="p-3 text-center">{item.type}</td>
-                        <td className="p-3 text-center">{item.aura}</td>
-                        <td className="p-3 text-center">{item.mains}</td>
-                        <td className="p-3 text-center">{item.prix}</td>
-                        <td className="p-3 text-center">{item.monnaie}</td>
-                        <td className="p-3 text-center">{item.degats}</td>
-                        <td className="p-3 text-center">{item.pi}</td>
-                        <td className="p-3 text-center">{item.courage}</td>
-                        <td className="p-3 text-center">{item.intelligence}</td>
-                        <td className="p-3 text-center">{item.charisme}</td>
-                        <td className="p-3 text-center">{item.adresse}</td>
-                        <td className="p-3 text-center">{item.force}</td>
-                        <td className="p-3 text-center">{item.perception}</td>
-                        <td className="p-3 text-center">{item.esquive}</td>
-                        <td className="p-3 text-center">{item.attaque}</td>
-                        <td className="p-3 text-center">{item.parade}</td>
-                        <td className="p-3 text-center">{item.effet}</td>
-                        <td className="p-3 text-center">{item.rupture}</td>
-                        <td className="p-3 text-center">{item.poids} g</td>
-                        <td className="p-3 text-center">{item.composants}</td>
-                        <td className="p-3 text-center">{item.outils}</td>
-                        <td className="p-3 text-center">{item.qualifications}</td>
-                        <td className="p-3 text-center">{item.difficulte}</td>
-                        <td className="p-3 text-center">{item.temps_de_confection}</td>
-                        <td className="p-3 text-center">{item.confection}</td>
-                        <td className="p-3 text-center">{item.xp_confection}</td>
-                        <td className="p-3 text-center">{item.xp_reparation}</td>
-                    </>
-                );
-            case 'Munitions':
-            case 'Objets magiques':
-            case 'Objets spéciaux':
-            case 'Outils':
-            case 'Pièges':
-            case 'Potions':
-            case 'Protections':
-                return (
-                    <>
-                        <td className="p-3 text-center">{item.niveau}</td>
-                        <td className="p-3 text-center">{item.restriction}</td>
-                        <td className="p-3 text-center">{item.origine_rarete}</td>
-                        <td className="p-3 text-center">{item.type}</td>
-                        <td className="p-3 text-center">{item.aura}</td>
-                        <td className="p-3 text-center">{item.matiere}</td>
-                        <td className="p-3 text-center">{item.prix}</td>
-                        <td className="p-3 text-center">{item.monnaie}</td>
-                        <td className="p-3 text-center">{item.pr_sol}</td>
-                        <td className="p-3 text-center">{item.pr_spe}</td>
-                        <td className="p-3 text-center">{item.pr_mag}</td>
-                        <td className="p-3 text-center">{item.courage}</td>
-                        <td className="p-3 text-center">{item.intelligence}</td>
-                        <td className="p-3 text-center">{item.charisme}</td>
-                        <td className="p-3 text-center">{item.adresse}</td>
-                        <td className="p-3 text-center">{item.force}</td>
-                        <td className="p-3 text-center">{item.perception}</td>
-                        <td className="p-3 text-center">{item.esquive}</td>
-                        <td className="p-3 text-center">{item.attaque}</td>
-                        <td className="p-3 text-center">{item.parade}</td>
-                        <td className="p-3 text-center">{item.mag_psy}</td>
-                        <td className="p-3 text-center">{item.mag_phy}</td>
-                        <td className="p-3 text-center">{item.rm}</td>
-                        <td className="p-3 text-center">{item.mvt}</td>
-                        <td className="p-3 text-center">{item.discretion}</td>
-                        <td className="p-3 text-center">{item.pluie}</td>
-                        <td className="p-3 text-center">{item.froid}</td>
-                        <td className="p-3 text-center">{item.chaleur}</td>
-                        <td className="p-3 text-center">{item.couvre}</td>
-                        <td className="p-3 text-center">{item.effet}</td>
-                        <td className="p-3 text-center">{item.rupture}</td>
-                        <td className="p-3 text-center">{item.poids} g</td>
-                        <td className="p-3 text-center">{item.composants}</td>
-                        <td className="p-3 text-center">{item.outils}</td>
-                        <td className="p-3 text-center">{item.qualifications}</td>
-                        <td className="p-3 text-center">{item.difficulte}</td>
-                        <td className="p-3 text-center">{item.temps_de_confection}</td>
-                        <td className="p-3 text-center">{item.confection}</td>
-                        <td className="p-3 text-center">{item.xp_confection}</td>
-                        <td className="p-3 text-center">{item.xp_reparation}</td>
-                    </>
-                );
-            case 'Sacoches':
-            case 'Sacs':
-
-            default: // cases 'all'
-                return (
-                    <>
-                        <td className="p-3 opacity-80">{item.type}</td>
-                        <td className="p-3 text-center">{item.poids} g</td>
-                        <td className="p-3 text-center text-xs">
-                            <div>PI: {item.pi}</div>
-                            <div>Rupt: {item.rupture}</div>
-                        </td>
-                        <td className="p-3 text-center text-xs">
-                            <div>Mag: {item.pr_mag} / Spé: {item.pr_spe}</div>
-                            <div>Env: P{item.pluie}/F{item.froid}/C{item.chaleur}</div>
-                        </td>
-                    </>
-                );
-        }
-    };
+    // Pagination Helpers
+    const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
     return (
-        <div className="py-6 px-[200px] w-full">
-            <div className="flex justify-between items-center mb-6 border-b border-leather/20 pb-2">
+        <div className="fixed inset-0 w-full h-full flex flex-col bg-parchment p-4 box-border overflow-hidden overscroll-none z-50">
+            <div className="flex justify-between items-center mb-6 border-b border-leather/20 pb-2 flex-shrink-0">
                 <h2 className="text-2xl font-bold font-serif text-leather-dark">
                     Administration de la Base de Données
                 </h2>
@@ -745,11 +417,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 </div>
             </div>
 
-            <div className="flex justify-between items-center mb-4 gap-4">
+            <div className="flex justify-between items-center mb-4 gap-4 flex-shrink-0">
                 <div className="flex gap-2 items-center flex-1">
                     <input
                         type="text"
-                        placeholder="Rechercher..."
+                        placeholder="Recherche globale..."
                         className="p-2 border border-leather/30 rounded w-64 bg-white/50"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -757,7 +429,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     <select
                         className="p-2 border border-leather/30 rounded bg-white/50"
                         value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        onChange={(e) => {
+                            setSelectedCategory(e.target.value);
+                            setFilters({});
+                        }}
                     >
                         {uniqueCategories.map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
@@ -772,182 +447,181 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 </button>
             </div>
 
-            <div className="bg-white/40 rounded shadow overflow-hidden">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-leather text-parchment uppercase text-xs">
-                        <tr>
-                            <th className="p-3">Catégorie</th>
-                            <th className="p-3 text-center">ID</th>
-                            <th className="p-3">Nom</th>
-                            {/* Dynamic Headers */}
-                            {renderTableHeader()}
-                            <th className="p-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-leather/10">
-                        {loading ? (
-                            <tr><td colSpan={12} className="p-4 text-center">Chargement...</td></tr>
-                        ) : filteredItems.map(item => (
-                            <tr key={item.id} className="hover:bg-white/30 transition-colors">
-                                <td className="p-3 font-semibold text-leather-light">{item.category}</td>
-                                <td className="p-3 text-center text-xs opacity-50 font-mono">{item.ref_id}</td>
-                                <td className="p-3 font-bold text-leather-dark">
-                                    {item.nom}
-                                    {item.effet && <span className="block text-[10px] font-normal opacity-60 truncate max-w-[200px]">{item.effet}</span>}
-                                </td>
-
-                                {renderTableRow(item)}
-
-                                <td className="p-3 text-right whitespace-nowrap">
-                                    <button onClick={() => openEdit(item)} className="text-blue-600 hover:text-blue-800 mr-2">✏️</button>
-                                    <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800">🗑️</button>
-                                </td>
+            <div className="bg-white/40 rounded shadow flex-1 overflow-hidden flex flex-col relative border border-leather/20">
+                <div className="overflow-x-auto overflow-y-auto flex-1 w-full">
+                    <table className="text-left text-sm border-collapse min-w-full">
+                        <thead className="bg-leather text-parchment uppercase text-xs sticky top-0 z-30 shadow-md">
+                            <tr>
+                                <th className="p-3 sticky left-0 bg-leather z-40 min-w-[300px] shadow-[2px_0_5px_rgba(0,0,0,0.1)]">
+                                    <div className="flex items-center justify-between">
+                                        Nom
+                                        <TableColumnFilter
+                                            columnKey="nom"
+                                            label="Nom"
+                                            options={uniqueValues['nom'] || []}
+                                            selectedValues={filters['nom'] || []}
+                                            onChange={(vals) => handleFilterChange('nom', vals)}
+                                        />
+                                    </div>
+                                </th>
+                                <th className="p-3 text-center min-w-[60px] border-l border-leather-light/20">ID</th>
+                                {currentSchema.map(field => (
+                                    <th key={String(field.key)} className="p-3 text-center whitespace-nowrap border-l border-leather-light/20" style={{ minWidth: field.width || '100px' }}>
+                                        <div className="flex items-center justify-between">
+                                            {field.label}
+                                            <TableColumnFilter
+                                                columnKey={String(field.key)}
+                                                label={field.label}
+                                                options={uniqueValues[field.key as string] || []}
+                                                selectedValues={filters[field.key as string] || []}
+                                                onChange={(vals) => handleFilterChange(field.key as string, vals)}
+                                            />
+                                        </div>
+                                    </th>
+                                ))}
+                                <th className="p-3 text-right sticky right-0 bg-leather z-40 shadow-[-2px_0_5px_rgba(0,0,0,0.1)]">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-leather/10">
+                            {loading ? (
+                                <tr><td colSpan={currentSchema.length + 3} className="p-4 text-center">Chargement...</td></tr>
+                            ) : currentItems.map(item => (
+                                <tr key={item.id} className="hover:bg-white/50 transition-colors group bg-white/20 odd:bg-white/10">
+                                    <td className="p-2 font-bold text-leather-dark sticky left-0 bg-parchment/90 group-hover:bg-parchment z-20 border-r border-leather/10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                                        {item.nom}
+                                    </td>
+                                    <td className="p-2 text-center text-xs opacity-50 font-mono">
+                                        {item.ref_id}
+                                    </td>
+                                    {currentSchema.map(field => (
+                                        <td key={`${item.id}-${field.key}`} className="p-2 text-center truncate max-w-[200px] border-l border-leather/5" title={String((item as any)[field.key] || '')}>
+                                            {(item as any)[field.key]}
+                                        </td>
+                                    ))}
+                                    <td className="p-2 text-right whitespace-nowrap sticky right-0 bg-parchment/90 group-hover:bg-parchment z-20 border-l border-leather/10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+                                        <button onClick={() => openEdit(item)} className="text-blue-600 hover:text-blue-800 mr-2 p-1 hover:bg-white/50 rounded" title="Modifier">✏️</button>
+                                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 p-1 hover:bg-white/50 rounded" title="Supprimer">🗑️</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Pagination Footer */}
+                <div className="p-2 bg-parchment border-t border-leather/20 flex items-center justify-between text-xs sticky bottom-0 z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-leather-dark">Afficher :</span>
+                        <select
+                            value={itemsPerPage}
+                            onChange={(e) => {
+                                setItemsPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="p-1 border border-leather/30 rounded bg-white/50 cursor-pointer hover:bg-white/80"
+                        >
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                            <option value={500}>500</option>
+                            <option value={999999}>Tout</option>
+                        </select>
+                        <span className="text-leather-light ml-2 border-l border-leather/20 pl-2">
+                            Total : <span className="font-bold">{filteredItems.length}</span> élément(s)
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1 border border-leather/30 rounded disabled:opacity-30 enabled:hover:bg-leather enabled:hover:text-parchment transition-colors font-bold"
+                            title="Page précédente"
+                        >
+                            &lt;
+                        </button>
+                        <span className="px-3 font-mono">
+                            Page {currentPage} / {Math.max(1, Math.ceil(filteredItems.length / itemsPerPage))}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage >= totalPages}
+                            className="px-3 py-1 border border-leather/30 rounded disabled:opacity-30 enabled:hover:bg-leather enabled:hover:text-parchment transition-colors font-bold"
+                            title="Page suivante"
+                        >
+                            &gt;
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Modal */}
             {isModalOpen && editingItem && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-parchment p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border-2 border-leather">
-                        <h3 className="text-xl font-bold mb-4 border-b border-leather/20 pb-2">
-                            {editingItem.id ? 'Éditer' : 'Créer'} un objet
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-parchment p-6 rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border-2 border-leather flex flex-col">
+                        <h3 className="text-xl font-bold mb-4 border-b border-leather/20 pb-2 flex-shrink-0">
+                            {editingItem.id ? 'Éditer' : 'Créer'} : {editingItem.category}
                         </h3>
-                        <form onSubmit={handleSave} className="space-y-4">
+                        <form onSubmit={handleSave} className="space-y-4 flex-1">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Catégorie</label>
+                                    <label className="block text-xs font-bold uppercase opacity-70 mb-1">Catégorie</label>
                                     <select
-                                        className="w-full p-2 border rounded bg-white/50"
+                                        className="w-full p-2 border border-leather/30 rounded bg-white/50"
                                         value={editingItem.category}
                                         onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                                        disabled={!!editingItem.id}
                                     >
-                                        <option value="Armes">Armes</option>
-                                        <option value="Protections">Protections</option>
-                                        <option value="Mains_nues">Mains Nues</option>
-                                        <option value="Accessoires">Accessoires</option>
+                                        {uniqueCategories.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Nom</label>
+                                    <label className="block text-xs font-bold uppercase opacity-70 mb-1">Nom</label>
                                     <input
-                                        className="w-full p-2 border rounded bg-white/50"
+                                        className="w-full p-2 border border-leather/30 rounded bg-white/50"
                                         value={editingItem.nom}
                                         onChange={(e) => setEditingItem({ ...editingItem, nom: e.target.value })}
-                                        required />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Type (Sous-catégorie)</label>
-                                    <input
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.type}
-                                        onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Poids (g)</label>
-                                    <input type="number" step="0.1"
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.poids}
-                                        onChange={(e) => setEditingItem({ ...editingItem, poids: parseFloat(e.target.value) })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Rupture</label>
-                                    <input
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.rupture}
-                                        onChange={(e) => setEditingItem({ ...editingItem, rupture: e.target.value })}
+                                        required
                                     />
                                 </div>
                             </div>
 
-                            <h4 className="font-bold text-sm bg-leather/10 p-1">Caractéristiques de Combat</h4>
-                            <div className="grid grid-cols-4 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">PI (Arme)</label>
-                                    <input type="number"
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.pi}
-                                        onChange={(e) => setEditingItem({ ...editingItem, pi: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Dégats / PR (Protection)</label>
-                                    <input
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.degats}
-                                        onChange={(e) => setEditingItem({ ...editingItem, degats: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">PR Magique</label>
-                                    <input type="number"
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.pr_mag}
-                                        onChange={(e) => setEditingItem({ ...editingItem, pr_mag: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">PR Spéciale</label>
-                                    <input type="number"
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.pr_spe}
-                                        onChange={(e) => setEditingItem({ ...editingItem, pr_spe: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Aura</label>
-                                    <input
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.aura}
-                                        onChange={(e) => setEditingItem({ ...editingItem, aura: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <h4 className="font-bold text-sm bg-leather/10 p-1">Protection Environnementale</h4>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Pluie</label>
-                                    <input type="number"
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.pluie}
-                                        onChange={(e) => setEditingItem({ ...editingItem, pluie: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Froid</label>
-                                    <input type="number"
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.froid}
-                                        onChange={(e) => setEditingItem({ ...editingItem, froid: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70">Chaleur</label>
-                                    <input type="number"
-                                        className="w-full p-2 border rounded bg-white/50"
-                                        value={editingItem.chaleur}
-                                        onChange={(e) => setEditingItem({ ...editingItem, chaleur: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase opacity-70">Effet</label>
-                                <textarea
-                                    className="w-full p-2 border rounded bg-white/50 h-24"
-                                    value={editingItem.effet}
-                                    onChange={(e) => setEditingItem({ ...editingItem, effet: e.target.value })}
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-white/20 rounded border border-leather/10">
+                                {currentSchema.map(field => (
+                                    <div key={String(field.key)} className={field.type === 'textarea' ? 'col-span-full' : ''}>
+                                        <label className="block text-[10px] font-bold uppercase opacity-70 mb-1">{field.label}</label>
+                                        {field.type === 'textarea' ? (
+                                            <textarea
+                                                className="w-full p-2 border border-leather/30 rounded bg-white/50 min-h-[60px] text-sm"
+                                                value={(editingItem as any)[field.key] || ''}
+                                                onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
+                                            />
+                                        ) : field.type === 'select' && field.options ? (
+                                            <select
+                                                className="w-full p-2 border border-leather/30 rounded bg-white/50 text-sm"
+                                                value={(editingItem as any)[field.key] || ''}
+                                                onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
+                                            >
+                                                <option value="">-</option>
+                                                {field.options.map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type={field.type === 'number' ? 'number' : 'text'}
+                                                step={field.type === 'number' ? "0.01" : undefined}
+                                                className="w-full p-2 border border-leather/30 rounded bg-white/50 text-sm"
+                                                value={(editingItem as any)[field.key] || ''}
+                                                onChange={(e) => {
+                                                    const val = field.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+                                                    setEditingItem({ ...editingItem, [field.key as string]: val });
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
                             </div>
 
                             <div className="flex justify-end gap-2 pt-4 border-t border-leather/20">
