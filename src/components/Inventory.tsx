@@ -189,7 +189,7 @@ export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChan
                 const matchByNameLoose = refs.find(r => r.nom === oldName);
 
                 if (matchByNameLoose) {
-                    console.log(`Relinking item ${oldName} (Old ID: ${item.refId}) to New ID: ${matchByNameLoose.ref_id} (via Name)`);
+
                     changed = true;
                     return {
                         ...item,

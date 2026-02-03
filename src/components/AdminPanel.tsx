@@ -85,7 +85,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         setLoading(true);
         try {
             const rawData = await invoke('get_ref_items') as any[];
-            // console.log("Raw items from backend:", rawData); // Disabled for performance
+
 
             const mappedItems: RefEquipement[] = rawData.map(item => {
                 const d = item.degats || {};

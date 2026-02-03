@@ -96,7 +96,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
 
     const saveCharacter = async () => {
         try {
-            console.log("Saving character data:", data);
+
             await invoke('save_personnage_local', {
                 id: characterId,
                 name: data.identity.nom || 'Sans nom',
@@ -500,7 +500,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
 
             <div className={activeTab === 'fiche' ? 'space-y-6 animate-fade-in' : 'hidden'}>
 
-                {/* Updates: Moved Characteristics below, others in a top grid */}
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="space-y-6">
                         <GeneralStatsPanel

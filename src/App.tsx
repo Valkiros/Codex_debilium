@@ -9,7 +9,7 @@ import { CharacterSelection } from "./components/CharacterSelection";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { UserProfile } from "./types";
 
-import { AdminPanel } from "./components/AdminPanel"; // Import AdminPanel (to be created)
+import { AdminPanel } from "./components/AdminPanel";
 
 // ... (existing imports)
 
@@ -17,7 +17,7 @@ function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
-  const [view, setView] = useState<'selection' | 'sheet' | 'admin'>('selection'); // New view state
+  const [view, setView] = useState<'selection' | 'sheet' | 'admin'>('selection');
   const [isDirty, setIsDirty] = useState(false);
 
   const [showConfirm, setShowConfirm] = useState(false);

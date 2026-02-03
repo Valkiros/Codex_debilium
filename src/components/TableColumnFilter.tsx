@@ -9,7 +9,6 @@ interface TableColumnFilterProps {
 }
 
 export const TableColumnFilter: React.FC<TableColumnFilterProps> = ({
-    columnKey,
     label,
     options,
     selectedValues,
