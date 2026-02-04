@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Defenses, ProtectionValue, StatDetail } from '../types';
-import { Tooltip } from './Tooltip';
-import { CalculationDetails } from './CalculationDetails';
+import { Tooltip } from '../../Shared/Tooltip';
+import { CalculationDetails } from '../Fiche/CalculationDetails';
 
 
 interface ProtectionsPanelProps {

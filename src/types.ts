@@ -105,6 +105,7 @@ export interface Identity {
     metier: string;
     specialisation: string;
     sous_specialisation: string;
+    description?: string;
 }
 
 // Interface pour les PVs et PMs (schéma de base)
@@ -236,10 +237,16 @@ export interface Alcohol {
     gueule_de_bois: number;
 }
 
+export interface Drug {
+    type: string; // 'Aucune', 'ADD', 'ADD+', 'ADD++'
+    jours_retard: number;
+}
+
 export interface CharacterStatus {
     senses: Senses;
     fatigue: Fatigue;
     alcohol: Alcohol;
+    drug: Drug;
 }
 
 // Interface pour le résumé du personnage

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { CharacterSummary } from "../types";
-import { supabase } from "../lib/supabase";
+import { CharacterSummary } from '../../types';
+import { supabase } from "../../lib/supabase";
 
 interface CharacterSelectionProps {
     onSelect: (id: string) => void;
@@ -156,10 +156,10 @@ export function CharacterSelection({ onSelect }: CharacterSelectionProps) {
 
             {toast && (
                 // ... existing toast ...
-                <div className={`fixed top-4 right-4 px-6 py-4 rounded shadow-xl z-50 animate-bounce flex items-center gap-2 font-bold
+                <div className={`fixed top - 4 right - 4 px - 6 py - 4 rounded shadow - xl z - 50 animate - bounce flex items - center gap - 2 font - bold
                     ${toast.type === 'success' ? 'bg-green-700 text-white' : ''}
                     ${toast.type === 'error' ? 'bg-red-700 text-white' : ''}
-                    ${toast.type === 'info' ? 'bg-blue-700 text-white' : ''}`
+                    ${toast.type === 'info' ? 'bg-blue-700 text-white' : ''} `
                 }>
                     <span>{toast.type === 'success' ? '✅' : toast.type === 'error' ? '❌' : 'ℹ️'}</span>
                     {toast.message}
@@ -309,7 +309,7 @@ export function CharacterSelection({ onSelect }: CharacterSelectionProps) {
                                     }
                                     // 3. Refresh list
                                     await loadCharacters();
-                                    showToast(`${cloudChars.length} personnage(s) importé(s) !`, 'success');
+                                    showToast(`${cloudChars.length} personnage(s) importé(s)!`, 'success');
                                 }
                             } catch (err: any) {
                                 setError(String(err.message || err));

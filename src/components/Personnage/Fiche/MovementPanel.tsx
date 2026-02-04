@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Movement, MagicStealth, ProtectionValue, StatDetail } from '../types';
-import { Tooltip } from './Tooltip';
+import { Movement, MagicStealth, ProtectionValue, StatDetail } from '../../../types';
+import { Tooltip } from '../../Shared/Tooltip';
 import { CalculationDetails } from './CalculationDetails';
 
 

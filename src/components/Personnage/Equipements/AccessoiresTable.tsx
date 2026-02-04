@@ -1,25 +1,24 @@
 import React from 'react';
-import { Equipement, RefEquipement } from '../types';
+import { Equipement, RefEquipement } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
-import { SearchableSelect } from './SearchableSelect';
+import { SearchableSelect } from '../../Shared/SearchableSelect';
 
-interface MainsNuesTableProps {
+interface AccessoiresTableProps {
     items: Equipement[];
     onItemsChange: (items: Equipement[]) => void;
     referenceOptions: RefEquipement[];
     defaultItem?: Partial<Equipement>;
-    characterForce: number;
     onRemove?: (uid: string) => void;
 }
 
-export const MainsNuesTable: React.FC<MainsNuesTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem, characterForce, onRemove }) => {
+export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onItemsChange, referenceOptions, defaultItem, onRemove }) => {
 
     const handleAddRow = () => {
         const newItem: Equipement = {
             uid: uuidv4(),
             id: '',
             refId: 0,
-            equipement_type: 'MainsNues',
+            equipement_type: 'Accessoires',
             modif_pi: 0,
             modif_rupture: 0,
             modif_pr_sol: 0,
@@ -54,20 +53,23 @@ export const MainsNuesTable: React.FC<MainsNuesTableProps> = ({ items, onItemsCh
                     return {
                         ...item,
                         refId: refItem.id,
-                        // Removed redundant fields
+                        equipement_type: 'Accessoires', // Force correct type
                     };
                 }
                 return item;
             }));
         } else {
-            // Reset to default
+            // Reset to default if cleared
             onItemsChange(items.map(item => {
                 if (item.uid === uid) {
                     return {
                         ...item,
                         refId: 0,
-                        modif_pi: 0,
-                        modif_rupture: 0
+                        modif_pr_sol: 0,
+                        modif_pr_spe: 0,
+                        modif_pr_mag: 0,
+                        modif_rupture: 0,
+                        equipement_type: 'Accessoires'
                     };
                 }
                 return item;
@@ -84,46 +86,10 @@ export const MainsNuesTable: React.FC<MainsNuesTableProps> = ({ items, onItemsCh
         }));
     };
 
-
-    const calculateTotal = (degats: string, refPi: number, modif: number, bonusFo: number): string => {
-        if (!degats) return '';
-
-        // 1. Separate Dice from Degats (ignoring internal bonuses as we now have explicit PI)
-        let dicePart = degats;
-
-        // 2. Parse modif_pi
-        let modifVal = 0;
-        if (modif) {
-            const parsedModif = modif;
-            if (!isNaN(parsedModif)) {
-                modifVal = parsedModif;
-            }
-        }
-
-        // 3. Calculate Total PI
-        const totalPi = parseInt(String(refPi || 0), 10) + modifVal + (bonusFo || 0);
-
-        // 4. Format
-        if (totalPi > 0) {
-            return `${dicePart} + ${totalPi}`;
-        } else if (totalPi < 0) {
-            return `${dicePart} - ${Math.abs(totalPi)}`;
-        }
-        return dicePart;
-    };
-
-    // --- Fonctions Utilitaires ---
-
-    // Récupère une valeur dans la base de référence pour un ID donné.
-    // C'est grâce à ça que l'affichage reste à jour même si la base change.
-    const getRefPi = (refId: number): number => {
+    // Helper functions
+    const getRefValue = (refId: number, field: keyof RefEquipement): any => {
         const r = referenceOptions.find(o => o.id === refId);
-        return r?.pi || 0;
-    };
-
-    const getRefRupture = (refId: number): string => {
-        const r = referenceOptions.find(o => o.id === refId);
-        return r?.rupture || '';
+        return r ? r[field] : '';
     };
 
     const getRefEffet = (refId: number): string => {
@@ -131,20 +97,17 @@ export const MainsNuesTable: React.FC<MainsNuesTableProps> = ({ items, onItemsCh
         return r?.raw.details?.effet || '';
     };
 
-    const getRefCategory = (refId: number): string => {
-        const r = referenceOptions.find(o => o.id === refId);
-        return r ? r.category : '';
-    };
-
-    const getRefValue = (refId: number, field: keyof RefEquipement): any => {
-        const r = referenceOptions.find(o => o.id === refId);
-        return r ? r[field] : '';
+    const calculateTotalPr = (base: number | undefined, modif: number | undefined): string | number => {
+        const baseVal = parseInt(String(base || 0), 10);
+        const modifVal = parseInt(String(modif || 0), 10);
+        const total = baseVal + modifVal;
+        return total !== 0 ? total : '-';
     };
 
     return (
         <div className="mb-6 p-6 bg-parchment/30 rounded-lg shadow-sm border border-leather/20">
             <div className="flex justify-between items-center mb-4 border-b border-leather/20 pb-2">
-                <h3 className="text-xl font-bold text-leather font-serif">Mains Nues</h3>
+                <h3 className="text-xl font-bold text-leather font-serif">Accessoires</h3>
                 <div className="flex gap-2">
                     <button
                         onClick={handleRemoveLastRow}
@@ -164,99 +127,103 @@ export const MainsNuesTable: React.FC<MainsNuesTableProps> = ({ items, onItemsCh
                 </div>
             </div>
             <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[1000px]">
+                <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="text-sm font-serif font-bold text-leather uppercase tracking-wider border-b-2 border-leather">
-                            <th className="p-2 w-16">N°</th>
-                            <th className="p-2 w-16">ID</th>
+                            <th className="p-2 w-12">ID</th>
                             <th className="p-2 w-24">Type</th>
                             <th className="p-2 w-48">Nom</th>
-                            <th className="p-2 w-24">Dégâts</th>
-                            <th className="p-2 w-20">Modif (PI)</th>
-                            <th className="p-2 w-20">Bonus FO</th>
-                            <th className="p-2 w-32">Total</th>
-                            <th className="p-2 w-24">Rupture</th>
-                            <th className="p-2 w-20">Modif (Rup)</th>
+
+                            <th className="p-2 w-16 text-center">Pr Sol</th>
+                            <th className="p-2 w-16 text-center">Mod</th>
+
+                            <th className="p-2 w-16 text-center">Pr Spé</th>
+                            <th className="p-2 w-16 text-center">Mod</th>
+
+                            <th className="p-2 w-16 text-center">Pr Mag</th>
+                            <th className="p-2 w-16 text-center">Mod</th>
+
+                            <th className="p-2 w-20 text-center">Rupture</th>
+                            <th className="p-2 w-16 text-center">Mod</th>
+
                             <th className="p-2">Effet</th>
                             <th className="p-2 w-8"></th>
                         </tr>
                     </thead>
                     <tbody className="text-ink">
-                        {items.map((item, index) => {
+                        {items.map((item) => {
+                            const refRupture = getRefValue(item.refId, 'rupture');
+                            const basePrSol = getRefValue(item.refId, 'pr_sol');
+                            const basePrSpe = getRefValue(item.refId, 'pr_spe');
+                            const basePrMag = getRefValue(item.refId, 'pr_mag');
+
                             return (
-                                <tr key={item.uid || index} className="border-b border-leather-light/30 hover:bg-leather/5">
-                                    <td className="p-2 font-bold text-leather-dark">M{index + 1}</td>
-                                    {/* Display Ref ID */}
+                                <tr key={item.uid} className="border-b border-leather-light/30 hover:bg-leather/5">
                                     <td className="p-2 text-xs text-ink-light">{getRefValue(item.refId, 'ref_id') || '-'}</td>
-                                    <td className="p-2 text-sm italic">{(() => {
-                                        const r = referenceOptions.find(o => o.id === item.refId);
-                                        return r?.type || getRefCategory(item.refId) || item.equipement_type;
-                                    })()}</td>
-                                    <td className="p-2 w-48 max-w-[12rem]">
+                                    <td className="p-2 text-sm italic">{getRefValue(item.refId, 'type') || item.equipement_type}</td>
+                                    <td className="p-2 w-48 max-w-[12rem]" title={getRefValue(item.refId, 'effet')}>
                                         <SearchableSelect
                                             options={referenceOptions.map(r => ({ id: r.id, label: r.nom }))}
                                             value={item.refId}
                                             onChange={(val) => handleSelectChange(item.uid, val)}
                                             className="w-full"
+                                            direction="up" // Force open upwards
                                         />
                                     </td>
-                                    <td className="p-2">
-                                        {/* Display Dice + Base PI (e.g. "1D + 3") */}
-                                        {(() => {
-                                            const pi = getRefPi(item.refId);
-                                            const r = referenceOptions.find(o => o.id === item.refId);
-                                            const dice = r?.degats || '';
 
-                                            if (pi > 0 && dice) return `${dice} + ${pi}`;
-                                            if (pi < 0 && dice) return `${dice} - ${Math.abs(pi)}`;
-                                            if (pi !== 0 && !dice) return `${pi}`;
-                                            return dice;
-                                        })()}
-                                    </td>
+                                    {/* PR Solide */}
+                                    <td className="p-2 text-center">{calculateTotalPr(basePrSol, item.modif_pr_sol)}</td>
                                     <td className="p-2">
                                         <input
                                             type="text"
-                                            value={item.modif_pi || ''}
-                                            onChange={(e) => handleUpdateField(item.uid, 'modif_pi', parseInt(e.target.value) || 0)}
+                                            value={item.modif_pr_sol || ''}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_pr_sol', e.target.value)}
                                             className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
                                             placeholder="+0"
                                         />
                                     </td>
-                                    <td className="p-2 text-center text-ink-light font-mono">
-                                        {(() => {
-                                            const r = referenceOptions.find(o => o.id === item.refId);
-                                            const itemForceBonus = parseInt(String(r?.raw.caracteristiques?.force || 0), 10);
-                                            const totalForce = parseInt(String(characterForce), 10) + itemForceBonus;
-                                            const bonusFo = Math.max(0, totalForce - 12);
-                                            return bonusFo > 0 ? `+${bonusFo}` : '0';
-                                        })()}
-                                    </td>
-                                    <td className="p-2 font-bold text-leather">
-                                        {(() => {
-                                            const r = referenceOptions.find(o => o.id === item.refId);
-                                            const degats = r?.degats || '';
-                                            const refPi = r?.pi || 0;
 
-                                            const itemForceBonus = parseInt(String(r?.raw.caracteristiques?.force || 0), 10);
-                                            const totalForce = parseInt(String(characterForce), 10) + itemForceBonus;
-                                            const bonusFo = Math.max(0, totalForce - 12);
-
-                                            return calculateTotal(degats, refPi, (item.modif_pi || 0), bonusFo);
-                                        })()}
+                                    {/* PR Spéciale */}
+                                    <td className="p-2 text-center">{calculateTotalPr(basePrSpe, item.modif_pr_spe)}</td>
+                                    <td className="p-2">
+                                        <input
+                                            type="text"
+                                            value={item.modif_pr_spe || ''}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_pr_spe', e.target.value)}
+                                            className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
+                                            placeholder="+0"
+                                        />
                                     </td>
-                                    <td className="p-2">{getRefRupture(item.refId) || '-'}</td>
+
+                                    {/* PR Magique */}
+                                    <td className="p-2 text-center">{calculateTotalPr(basePrMag, item.modif_pr_mag)}</td>
+                                    <td className="p-2">
+                                        <input
+                                            type="text"
+                                            value={item.modif_pr_mag || ''}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_pr_mag', e.target.value)}
+                                            className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
+                                            placeholder="+0"
+                                        />
+                                    </td>
+
+                                    {/* Rupture */}
+                                    <td className="p-2 text-center">{refRupture || '-'}</td>
                                     <td className="p-2">
                                         <input
                                             type="text"
                                             value={item.modif_rupture || ''}
-                                            onChange={(e) => handleUpdateField(item.uid, 'modif_rupture', parseInt(e.target.value) || 0)}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_rupture', e.target.value)}
                                             className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
                                             placeholder="+0"
                                         />
                                     </td>
-                                    <td className="p-2 text-sm max-w-[150px] truncate" title={getRefEffet(item.refId)}>
+
+                                    {/* Effet */}
+                                    <td className="p-2 text-sm max-w-[200px] truncate" title={getRefEffet(item.refId)}>
                                         {getRefEffet(item.refId) || ''}
                                     </td>
+
                                     <td className="p-2 text-center">
                                         <button
                                             onClick={() => handleRemoveRow(item.uid)}

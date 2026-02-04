@@ -8,7 +8,8 @@ export const INITIAL_DATA: CharacterData = {
         origine: '',
         metier: '',
         specialisation: '',
-        sous_specialisation: ''
+        sous_specialisation: '',
+        description: ''
     },
     vitals: {
         pv: { current: 10, max: 10, temp: 0 },
@@ -79,6 +80,10 @@ export const INITIAL_DATA: CharacterData = {
             leger: 0,
             fort: 0,
             gueule_de_bois: 0
+        },
+        drug: {
+            type: 'Aucune',
+            jours_retard: 0
         }
     }
 };

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Equipement, RefEquipement } from '../types';
+import { Equipement, RefEquipement } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
-import { SearchableSelect } from './SearchableSelect';
-import { Tooltip } from './Tooltip';
+import { SearchableSelect } from '../../Shared/SearchableSelect';
+import { Tooltip } from '../../Shared/Tooltip';
 
 
 // --- Interface des Propriétés (Props) ---

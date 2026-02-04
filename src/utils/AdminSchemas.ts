@@ -1,3 +1,4 @@
+// Utility definitions for Admin Panel schemas
 import { RefEquipement } from '../types';
 
 export interface FieldDef {

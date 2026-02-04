@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Characteristics, CharacteristicColumn, Equipement } from '../types';
-import { Tooltip } from './Tooltip';
+import { Characteristics, CharacteristicColumn, Equipement } from '../../../types';
+import { Tooltip } from '../../Shared/Tooltip';
 import { CalculationDetails } from './CalculationDetails';
 
 
 interface DetailedValue {
     value: number;
-    components: { label: string; value: number }[];
+    components: { label: string; value: number; displayValue?: string }[];
+    overrideDisplay?: string;
 }
 
 interface CharacteristicsPanelProps {
@@ -97,21 +98,21 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                 <thead>
                     <tr className="text-xs font-bold uppercase text-leather-light tracking-wider">
                         <th className="p-2 text-left w-32">Nom</th>
-                        <th className="p-2 w-16 text-leather-dark">Naturel</th>
+                        <th className="p-2 w-16 text-leather-dark min-w-[60px]">Naturel</th>
 
                         <th className="p-2 bg-leather/5 border-l border-white/20 w-12"></th>
-                        <th className="p-2 w-16">T1</th>
-                        <th className="p-2 w-16">T2</th>
-                        <th className="p-2 w-16">T3</th>
+                        <th className="p-2 w-16 min-w-[60px]">T1</th>
+                        <th className="p-2 w-16 min-w-[60px]">T2</th>
+                        <th className="p-2 w-16 min-w-[60px]">T3</th>
 
                         <th className="p-2 bg-leather/5 border-l border-white/20 w-12"></th>
-                        <th className="p-2 w-20">Équipé</th>
+                        <th className="p-2 w-20 min-w-[60px]">Équipé</th>
 
                         {/* Dynamic Headers with Tooltip Event */}
                         {dynamicColumns.map(col => (
                             <th
                                 key={col.id}
-                                className="p-2 w-16 text-leather-dark cursor-help relative group"
+                                className="p-2 w-16 text-leather-dark cursor-help relative group min-w-[60px]"
                                 onMouseEnter={(e) => {
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     setHoveredInfo({
@@ -193,8 +194,8 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                                     }}
                                     onMouseLeave={() => setHoveredInfo(null)}
                                 >
-                                    <span className="block w-full text-center font-bold bg-leather/10 rounded py-1 border border-leather/20">
-                                        {key === 'degats' ? '-' : (equippedValues[key]?.value || 0)}
+                                    <span className={`block w-full text-center font-bold bg-leather/10 rounded py-1 border border-leather/20 ${equippedValues[key]?.overrideDisplay ? 'text-red-600' : ''}`}>
+                                        {key === 'degats' ? '-' : (equippedValues[key]?.overrideDisplay || equippedValues[key]?.value || 0)}
                                     </span>
                                 </td>
 
@@ -287,6 +288,17 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                                     const refBonus = parseInt(String(refValCarac || refValRoot || refValRaw || 0), 10);
 
                                     const total = (equippedValues[key]?.value || 0) + instanceBonus + refBonus;
+
+                                    // Override Display check for dynamic columns (Impossible Dodge)
+                                    if (equippedValues[key]?.overrideDisplay) {
+                                        return (
+                                            <td key={col.id} className="p-2">
+                                                <span className="block w-full text-center py-1 font-bold text-red-600 text-xs">
+                                                    {equippedValues[key].overrideDisplay}
+                                                </span>
+                                            </td>
+                                        );
+                                    }
 
                                     return (
                                         <td key={col.id} className="p-2">

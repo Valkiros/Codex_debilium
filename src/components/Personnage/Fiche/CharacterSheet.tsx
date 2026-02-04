@@ -2,18 +2,18 @@ import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'rea
 import { createPortal } from 'react-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { CharacterHeader } from './CharacterHeader';
-import { LocalSaveButton } from './LocalSaveButton';
+import { LocalSaveButton } from '../../Shared/LocalSaveButton';
 import { MovementPanel } from './MovementPanel';
-import { ProtectionsPanel } from './ProtectionsPanel';
+import { ProtectionsPanel } from '../Equipements/ProtectionsPanel';
 import { MagicStealthPanel } from './MagicStealthPanel';
 import { CharacteristicsPanel } from './CharacteristicsPanel';
 import { TempModifiersPanel } from './TempModifiersPanel';
-import { Inventory } from './Inventory';
-import { CompetencesPanel } from './CompetencesPanel';
-import { StatusPanel } from './StatusPanel';
-import { CharacterData, Equipement, Characteristics, GameRules, Origine } from '../types';
-import { INITIAL_DATA } from '../constants';
-import { getAlcoholModifiers } from '../utils/alcohol';
+import { Inventory } from '../Equipements/Inventory';
+import { CompetencesPanel } from '../Competences/CompetencesPanel';
+import { StatusPanel } from '../Etat/StatusPanel';
+import { CharacterData, Equipement, Characteristics, GameRules, Origine } from '../../../types';
+import { INITIAL_DATA } from '../../../constants';
+import { getAlcoholModifiers } from '../../../utils/alcohol';
 
 export interface CharacterSheetHandle {
     save: () => Promise<void>;
@@ -130,9 +130,34 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
         return 0; // Normal, Fatigué
     };
 
+    // Helper to calculate PR Solide Encumbrance EARLY (for Dodge and Movement)
+    const calculateEncumbrance = () => {
+        let totalSolide = 0;
+        data.inventory.forEach(item => {
+            // Only protections and accessories
+            const type = item.equipement_type as string;
+            if (['Protections', 'Accessoires'].includes(type)) {
+                const refItem = refs.find(r => r.id === item.refId);
+                // Shield check
+                if (refItem?.details?.type === 'Bouclier' && !data.defenses.bouclier_actif) return;
+
+                const protections = refItem?.protections || refItem?.raw?.protections || {};
+                const baseSol = parseInt(String(protections.pr_sol || 0), 10);
+                const modSol = parseInt(String(item.modif_pr_sol || 0), 10);
+                totalSolide += (baseSol + modSol);
+            }
+        });
+        // Add Temp Modifier from Defenses (Naturel/Solide temp is usually on Solide panel)
+        totalSolide += (data.defenses.solide.temp || 0);
+
+        return totalSolide;
+    };
+
+    const currentEncumbrance = calculateEncumbrance();
+
     const calculateEquippedValues = () => {
         // Detailed structure for tooltips
-        const values: Record<keyof Characteristics, { value: number, components: { label: string, value: number }[] }> = {
+        const values: Record<keyof Characteristics, { value: number, components: { label: string, value: number, displayValue?: string }[], overrideDisplay?: string }> = {
             courage: { value: 0, components: [] },
             intelligence: { value: 0, components: [] },
             charisme: { value: 0, components: [] },
@@ -189,6 +214,56 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 if (val !== 0) components.push({ label: 'Gueule de bois', value: val });
             }
 
+            // --- DRUG MALUS LOGIC ---
+            const drug = data.status?.drug || { type: 'Aucune', jours_retard: 0 };
+            let drugMalus = 0;
+            if (drug.type === 'ADD') {
+                drugMalus = Math.floor(drug.jours_retard / 2) * -1;
+            } else if (drug.type === 'ADD+' || drug.type === 'ADD++') {
+                drugMalus = drug.jours_retard * -1;
+            }
+
+            if (drugMalus !== 0) {
+                components.push({ label: `Manque (Drogue: ${drug.type})`, value: drugMalus });
+            }
+            // ------------------------
+
+            // --- ENCUMBRANCE (Dodge) LOGIC ---
+            // Only affects Esquive 'equipé'
+            let encumbranceMalus = 0;
+            if (key === 'esquive') {
+                // Lookup Table:
+                // 0, 1 -> +1
+                // 2 -> 0
+                // 3, 4 -> -2
+                // 5 -> -4
+                // 6 -> -5
+                // 7 -> -6
+                // >7 -> Impossible (-20 to secure fail)
+
+                if (currentEncumbrance >= 0 && currentEncumbrance <= 1) encumbranceMalus = 1;
+                else if (currentEncumbrance === 2) encumbranceMalus = 0;
+                else if (currentEncumbrance >= 3 && currentEncumbrance <= 4) encumbranceMalus = -2;
+                else if (currentEncumbrance === 5) encumbranceMalus = -4;
+                else if (currentEncumbrance === 6) encumbranceMalus = -5;
+                else if (currentEncumbrance === 7) encumbranceMalus = -6;
+                else if (currentEncumbrance > 7) encumbranceMalus = -999; // Impossible
+
+                if (encumbranceMalus !== 0) {
+                    const label = encumbranceMalus > 0 ? 'Légèreté' : 'Encombrement';
+                    components.push({
+                        label: `${label} (PR Sol. ${currentEncumbrance})`,
+                        value: encumbranceMalus,
+                        displayValue: currentEncumbrance > 7 ? "Impossible" : undefined
+                    });
+                }
+
+                if (currentEncumbrance > 7) {
+                    values[key].overrideDisplay = "Imp.";
+                }
+            }
+            // ---------------------------------
+
             let base = naturel + t1 + t2 + t3 - malusTete + fatigueMod;
 
             // Add alcohol sums to base
@@ -198,6 +273,12 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             if (key in fort) base += fort[key];
             // @ts-ignore
             if (key in gueule_de_bois) base += gueule_de_bois[key];
+
+            // Add drug malus to base
+            base += drugMalus;
+
+            // Add encumbrance malus (Esquive only)
+            if (key === 'esquive') base += encumbranceMalus;
 
             values[key].value = base;
             values[key].components = components;
@@ -506,7 +587,8 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             />
 
             {/* Tab Navigation */}
-            <div className="flex border-b-2 border-leather mb-6">
+            {/* Tab Navigation */}
+            <div className="flex border-b-2 border-leather mb-6 overflow-x-auto whitespace-nowrap hide-scrollbar">
                 <button
                     onClick={() => setActiveTab('fiche')}
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'fiche' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
@@ -642,7 +724,9 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             <div className={activeTab === 'status' ? 'animate-fade-in' : 'hidden'}>
                 <StatusPanel
                     status={data.status || INITIAL_DATA.status}
+                    description={data.identity.description}
                     onChange={(newStatus) => setData({ ...data, status: newStatus })}
+                    onDescriptionChange={(desc) => setData({ ...data, identity: { ...data.identity, description: desc } })}
                 />
             </div>
 

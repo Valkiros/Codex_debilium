@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Equipement, RefEquipement } from '../types';
+import { Equipement, RefEquipement } from '../../../types';
 import { MainsNuesTable } from './MainsNuesTable';
 import { ArmesTable } from './ArmesTable';
 import { ProtectionsTable } from './ProtectionsTable';

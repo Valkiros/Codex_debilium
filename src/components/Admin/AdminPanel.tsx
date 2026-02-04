@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { RefEquipement } from '../types';
-import { supabase } from '../lib/supabase';
-import { ConfirmModal } from './ConfirmModal';
-import { CATEGORY_SCHEMAS, FieldDef } from '../utils/AdminSchemas';
-import { TableColumnFilter } from './TableColumnFilter';
-import { ThemeSelector } from './ThemeSelector';
+import { RefEquipement } from '../../types';
+import { supabase } from '../../lib/supabase';
+import { ConfirmModal } from '../Shared/ConfirmModal';
+import { CATEGORY_SCHEMAS } from '../../utils/adminSchemas';
+import { TableColumnFilter } from '../Shared/TableColumnFilter';
+import { ThemeSelector } from '../Shared/ThemeSelector';
 
 interface AdminPanelProps {
     onBack: () => void;

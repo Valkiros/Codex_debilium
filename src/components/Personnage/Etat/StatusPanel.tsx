@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { CharacterStatus } from '../types';
+import { CharacterStatus } from '../../../types';
+
 
 interface StatusPanelProps {
     status: CharacterStatus;
+    description?: string;
     onChange: (status: CharacterStatus) => void;
+    onDescriptionChange: (desc: string) => void;
 }
 
-export const StatusPanel: React.FC<StatusPanelProps> = ({ status, onChange }) => {
+export const StatusPanel: React.FC<StatusPanelProps> = ({ status, description = '', onChange, onDescriptionChange }) => {
     // Derived state for calculation display
     const [recoveryPreview, setRecoveryPreview] = useState({ pv: 0, pa: 0 });
 
@@ -185,6 +188,61 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ status, onChange }) =>
                                 className={`p-2 text-[13px] bg-input-bg border border-leather/30 rounded focus:border-leather outline-none`}
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* 4. DROGUE */}
+                <div className="bg-parchment/30 p-6 rounded-lg shadow-sm border border-leather/20">
+                    <h2 className="text-xl font-bold text-leather mb-4 border-b border-leather/20 pb-2">Drogue</h2>
+                    <div className="space-y-4">
+                        <div className="flex flex-col">
+                            <label className="text-[13px] font-bold uppercase text-leather-light mb-1">Type de Drogue</label>
+                            <select
+                                value={status.drug?.type || 'Aucune'}
+                                onChange={(e) => updateStatus('drug', 'type', e.target.value)}
+                                className="p-2 text-[13px] bg-input-bg border border-leather/30 rounded focus:border-leather outline-none"
+                            >
+                                <option value="Aucune">Aucune</option>
+                                <option value="ADD">ADD</option>
+                                <option value="ADD+">ADD+</option>
+                                <option value="ADD++">ADD++</option>
+                            </select>
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-[13px] font-bold uppercase text-leather-light mb-1">Jours de retard</label>
+                            <input
+                                type="number"
+                                min="0"
+                                value={status.drug?.jours_retard || ''}
+                                onChange={(e) => updateStatus('drug', 'jours_retard', parseInt(e.target.value) || 0)}
+                                className="p-2 text-[13px] bg-input-bg border border-leather/30 rounded focus:border-leather outline-none"
+                            />
+                        </div>
+
+                        {status.drug && status.drug.type !== 'Aucune' && (
+                            <div className="mt-4 p-3 bg-leather/5 rounded text-[13px] text-leather-dark">
+                                <strong>Effet (Informations) :</strong>
+                                <div className="mt-1 italic">
+                                    {status.drug.type === 'ADD' && "Tous les 2 jours sinon -1 à toutes les carac (cumulatif - auto)"}
+                                    {status.drug.type === 'ADD+' && "Tous les jours ou après un gros combat sinon -1 à toutes les carac (cumulatif - auto)"}
+                                    {status.drug.type === 'ADD++' && "Tous les jours ou après un combat sinon -1 à toutes les carac (cumulatif - auto)"}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* 5. DESCRIPTION */}
+                {/* 5. DESCRIPTION */}
+                <div className="bg-parchment/30 p-6 rounded-lg shadow-sm border border-leather/20 md:col-span-2 lg:col-span-2 flex flex-col">
+                    <h2 className="text-xl font-bold text-leather mb-4 border-b border-leather/20 pb-2">Description</h2>
+                    <div className="flex-1 min-h-[150px] flex flex-col">
+                        <textarea
+                            value={description}
+                            onChange={(e) => onDescriptionChange(e.target.value)}
+                            placeholder="Description physique, signes particuliers..."
+                            className="w-full flex-1 p-3 text-[13px] bg-input-bg border border-leather/30 rounded focus:border-leather outline-none resize-none font-serif leading-relaxed"
+                        />
                     </div>
                 </div>
 

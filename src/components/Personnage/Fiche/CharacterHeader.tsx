@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
-import { Identity, Vitals, CharacterData, GameRules, Origine, Metier, Requirements, Characteristics, GeneralStats } from '../types';
+import { Identity, Vitals, CharacterData, GameRules, Origine, Metier, Requirements, Characteristics, GeneralStats } from '../../../types';
 import { VitalsPanel } from './VitalsPanel';
 
 interface CharacterHeaderProps {

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Equipement, RefEquipement } from '../types';
+import { Equipement, RefEquipement } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
-import { SearchableSelect } from './SearchableSelect';
+import { SearchableSelect } from '../../Shared/SearchableSelect';
 
 interface ArmesTableProps {
     items: Equipement[];

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Vitals, ValueMax, Corruption, CorruptionOrigineRef, CorruptionPalierRef } from '../types';
-import { Tooltip } from './Tooltip';
+import { Vitals, ValueMax, Corruption, CorruptionOrigineRef, CorruptionPalierRef } from '../../../types';
+import { Tooltip } from '../../Shared/Tooltip';
 
 interface VitalsPanelProps {
     vitals: Vitals;

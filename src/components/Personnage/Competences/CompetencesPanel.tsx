@@ -1,9 +1,9 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Competence, CharacterCompetence } from '../types';
+import { Competence, CharacterCompetence } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
-import { SearchableSelect } from './SearchableSelect';
+import { SearchableSelect } from '../../Shared/SearchableSelect';
 
 interface CompetencesPanelProps {
     title: string;
@@ -13,7 +13,7 @@ interface CompetencesPanelProps {
 
 export const CompetencesPanel: React.FC<CompetencesPanelProps> = ({ title, competences, onCompetencesChange }) => {
     const [referenceCompetences, setReferenceCompetences] = useState<Competence[]>([]);
-    const [loading, setLoading] = useState(true);
+
 
     // Tooltip State
     const [hoveredCompId, setHoveredCompId] = useState<string | null>(null);
@@ -57,8 +57,6 @@ export const CompetencesPanel: React.FC<CompetencesPanelProps> = ({ title, compe
                 setReferenceCompetences(data);
             } catch (err) {
                 console.error("Failed to fetch reference competences:", err);
-            } finally {
-                setLoading(false);
             }
         };
         fetchRefCompetences();

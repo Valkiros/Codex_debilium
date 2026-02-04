@@ -1,5 +1,5 @@
 import React from 'react';
-import { TempModifiers } from '../types';
+import { TempModifiers } from '../../../types';
 
 interface TempModifiersPanelProps {
     modifiers: TempModifiers;
