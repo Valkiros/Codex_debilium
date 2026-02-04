@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Movement, MagicStealth, ProtectionValue, StatDetail } from '../types';
 import { Tooltip } from './Tooltip';
+import { CalculationDetails } from './CalculationDetails';
+
 
 interface MovementPanelProps {
     movement: Movement;
@@ -57,8 +59,7 @@ export const MovementPanel: React.FC<MovementPanelProps> = ({ movement, magic, c
                         value={isComputed ? baseValue : (data.base || '')}
                         onChange={(e) => !isComputed && handleMovementChange(category, 'base', e.target.value)}
                         readOnly={isComputed}
-                        className={`w-14 md:w-16 border border-leather/30 rounded text-center ${isComputed ? 'bg-black/5 text-leather-dark cursor-help font-bold' : 'bg-white/50'}`}
-                        placeholder="Base"
+                        className={`w-14 md:w-16 border border-leather/30 rounded text-center ${isComputed ? 'bg-black/5 text-leather-dark cursor-help font-bold' : 'bg-input-bg'}`}
                         onMouseEnter={(e) => {
                             if (isComputed && details) {
                                 const rect = e.currentTarget.getBoundingClientRect();
@@ -79,8 +80,7 @@ export const MovementPanel: React.FC<MovementPanelProps> = ({ movement, magic, c
                         type="number"
                         value={data.temp || ''}
                         onChange={(e) => handleMovementChange(category, 'temp', e.target.value)}
-                        className="w-14 md:w-16 bg-white/50 border border-leather/30 rounded text-center"
-                        placeholder="Add"
+                        className="w-14 md:w-16 bg-input-bg border border-leather/30 rounded text-center"
                     />
                 </div>
                 <span className="text-leather-light mt-4 px-1">=</span>
@@ -110,7 +110,7 @@ export const MovementPanel: React.FC<MovementPanelProps> = ({ movement, magic, c
                         value={isComputed ? baseValue : (data.base || '')}
                         onChange={(e) => !isComputed && handleMagicChange('discretion', 'base', e.target.value)}
                         readOnly={isComputed}
-                        className={`w-14 md:w-16 border border-leather/30 rounded text-center ${isComputed ? 'bg-black/5 text-leather-dark cursor-help font-bold' : 'bg-white/50'}`}
+                        className={`w-14 md:w-16 border border-leather/30 rounded text-center ${isComputed ? 'bg-black/5 text-leather-dark cursor-help font-bold' : 'bg-input-bg'}`}
                         onMouseEnter={(e) => {
                             if (isComputed && details) {
                                 const rect = e.currentTarget.getBoundingClientRect();
@@ -131,8 +131,7 @@ export const MovementPanel: React.FC<MovementPanelProps> = ({ movement, magic, c
                         type="number"
                         value={data.temp || ''}
                         onChange={(e) => handleMagicChange('discretion', 'temp', e.target.value)}
-                        className="w-14 md:w-16 bg-white/50 border border-leather/30 rounded text-center"
-                        placeholder="Add"
+                        className="w-14 md:w-16 bg-input-bg border border-leather/30 rounded text-center"
                     />
                 </div>
                 <span className="text-leather-light mt-4 px-1">=</span>
@@ -156,38 +155,18 @@ export const MovementPanel: React.FC<MovementPanelProps> = ({ movement, magic, c
             <div className="my-2 border-t border-leather/10"></div>
             {renderDiscretionRow("Discrétion")}
 
-            <div className="mt-4 flex items-center justify-between border-t border-leather/10 pt-2 text-red-800">
-                <label className="text-xs font-bold uppercase text-red-900/70">Malus Tête</label>
+            <div className="mt-4 flex items-center justify-between border-t border-leather/10 pt-2 text-red-600">
+                <label className="text-xs font-bold uppercase text-red-600/90">Malus Tête</label>
                 <input
                     type="number"
                     value={malusTete || ''}
                     onChange={(e) => onMalusTeteChange(parseInt(e.target.value) || 0)}
-                    className="w-16 bg-red-900/10 border border-red-900/30 rounded text-center font-bold text-red-900"
+                    className="w-16 bg-input-bg border border-red-500/50 rounded text-center font-bold text-red-600"
                 />
             </div>
 
             <Tooltip visible={!!hoveredInfo} position={hoveredInfo ? { x: hoveredInfo.x, y: hoveredInfo.y } : { x: 0, y: 0 }} title="Détails du Calcul">
-                {hoveredInfo && (
-                    <>
-                        <div className="mb-2 text-[#cca43b] text-xs italic border-b border-[#cca43b]/20 pb-1">
-                            {hoveredInfo.details.formula}
-                        </div>
-                        <div className="space-y-1">
-                            {hoveredInfo.details.components.map((comp, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-xs">
-                                    <span className="whitespace-pre-wrap">{comp.label} :</span>
-                                    <span className={`font-bold ${comp.value >= 0 ? 'text-[#eebb44]' : 'text-red-400'}`}>
-                                        {comp.value > 0 ? '+' : ''}{comp.value}
-                                    </span>
-                                </div>
-                            ))}
-                            <div className="border-t border-[#cca43b]/20 mt-2 pt-1 flex justify-between items-center font-bold text-[#eebb44]">
-                                <span>Total :</span>
-                                <span>{hoveredInfo.details.total}</span>
-                            </div>
-                        </div>
-                    </>
-                )}
+                {hoveredInfo && <CalculationDetails details={hoveredInfo.details} />}
             </Tooltip>
         </div>
     );

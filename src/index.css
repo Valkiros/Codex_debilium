@@ -11,6 +11,14 @@
   --color-ink-light: var(--ink-light);
   --font-sans: 'Inter', sans-serif;
   --font-serif: 'Georgia', 'Cambria', 'Times New Roman', serif;
+
+  --color-tooltip-bg: var(--tooltip-bg);
+  --color-tooltip-border: var(--tooltip-border);
+  --color-tooltip-text: var(--tooltip-text);
+  --color-tooltip-title: var(--tooltip-title);
+  --color-tooltip-label: var(--tooltip-label);
+
+  --color-input-bg: var(--input-bg);
 }
 
 :root {
@@ -26,17 +34,42 @@
   --leather-dark: #5e3b1f;
   /* Darker leather */
   --ink: #0f0f0f;
-  --ink-light: #4a4a4a;
+  /* Tooltip Colors - Livre */
+  --tooltip-bg: #fffcf5;
+  --tooltip-border: #5e3b1f;
+  --tooltip-text: #0f0f0f;
+  --tooltip-title: #8b5a2b;
+  --tooltip-label: #5e3b1f;
+
+  /* Input Backgrounds */
+  --input-bg: rgba(255, 255, 255, 0.5);
 }
 
 /* Dark Theme (Obsidienne) */
 [data-theme='dark'] {
-  --parchment: #1a1a1a;
-  --leather: #4a4a4a;
-  --leather-light: #6e6e6e;
-  --leather-dark: #2d2d2d;
-  --ink: #e0e0e0;
-  --ink-light: #a0a0a0;
+  --parchment: #121212;
+  /* Noir profond */
+  --leather: #c5a059;
+  /* Bronze doré (Labels, Bordures) - Visible sur noir */
+  --leather-light: #e5c585;
+  /* Or pâle (Accents) */
+  --leather-dark: #d4af37;
+  /* Or métallique (Titres) */
+  --ink: #ffffff;
+  /* Blanc pur (Texte principal, Valeurs) */
+  --ink-light: #e0e0e0;
+  /* Blanc cassé (Texte secondaire) */
+
+  /* Tooltip Colors - Obsidienne */
+  --tooltip-bg: #101010;
+  --tooltip-border: #6e6e6e;
+  --tooltip-text: #ffffff;
+  --tooltip-title: #ffd700;
+  --tooltip-label: #a0a0a0;
+
+  /* Input Backgrounds */
+  --input-bg: rgba(255, 255, 255, 0.05);
+  /* Très sombre pour éviter l'effet argenté */
 }
 
 /* Forest Theme (Elfe) */
@@ -47,6 +80,16 @@
   --leather-dark: #005005;
   --ink: #1b5e20;
   --ink-light: #4c8c4a;
+
+  /* Tooltip Colors - Elfe */
+  --tooltip-bg: #f1f8f1;
+  --tooltip-border: #2e7d32;
+  --tooltip-text: #1b5e20;
+  --tooltip-title: #2e7d32;
+  --tooltip-label: #4c8c4a;
+
+  /* Input Backgrounds */
+  --input-bg: rgba(255, 255, 255, 0.4);
 }
 
 body {

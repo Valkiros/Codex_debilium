@@ -37,11 +37,11 @@ export const Tooltip: React.FC<TooltipProps> = ({ visible, position, title, chil
 
     return (
         <div
-            className={`fixed z-50 p-4 bg-[#2a1a10] text-[#f0e6d2] rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.5)] border-2 border-[#cca43b] w-96 pointer-events-none transform -translate-x-1/2 ${verticalClass}`}
+            className={`fixed z-50 p-4 bg-tooltip-bg text-tooltip-text rounded-lg shadow-xl border-2 border-tooltip-border w-96 pointer-events-none transform -translate-x-1/2 ${verticalClass}`}
             style={{ left: position.x, top: topStyle }}
         >
             {title && (
-                <div className="font-serif font-bold text-xl mb-2 border-b border-[#cca43b]/40 pb-1 text-[#eebb44] tracking-wide">
+                <div className="font-serif font-bold text-xl mb-2 border-b border-tooltip-border/40 pb-1 text-tooltip-title tracking-wide">
                     {title}
                 </div>
             )}

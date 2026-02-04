@@ -10,73 +10,9 @@ import { CharacteristicsPanel } from './CharacteristicsPanel';
 import { TempModifiersPanel } from './TempModifiersPanel';
 import { Inventory } from './Inventory';
 import { CompetencesPanel } from './CompetencesPanel';
+import { StatusPanel } from './StatusPanel';
 import { CharacterData, Equipement, Characteristics, GameRules, Origine } from '../types';
-
-
-
-const INITIAL_DATA: CharacterData = {
-    identity: {
-        avatar_url: '',
-        nom: '',
-        sexe: '',
-        origine: '',
-        metier: '',
-        specialisation: '',
-        sous_specialisation: ''
-    },
-    vitals: {
-        pv: { current: 10, max: 10, temp: 0 },
-        pm: { current: 0, max: 0, temp: 0 },
-        corruption: { current: 0, max: 100, daily: 0 }
-    },
-    general: {
-        niveau: 1,
-        experience: 0,
-        points_destin: 0,
-        malus_tete: 0
-    },
-    defenses: {
-        naturelle: { base: 0, temp: 0 },
-        solide: { base: 0, temp: 0 },
-        speciale: { base: 0, temp: 0 },
-        magique: { base: 0, temp: 0 },
-        bouclier_actif: false
-    },
-    movement: {
-        marche: { base: 4, temp: 0 },
-        course: { base: 10, temp: 0 }
-    },
-    magic: {
-        magie_physique: { base: 0, temp: 0 },
-        magie_psychique: { base: 0, temp: 0 },
-        resistance_magique: { base: 0, temp: 0 },
-        discretion: { base: 0, temp: 0 },
-        protection_pluie: { base: 0, temp: 0 },
-        protection_froid: { base: 0, temp: 0 },
-        protection_chaleur: { base: 0, temp: 0 }
-    },
-    characteristics: {
-        courage: { naturel: 0, t1: 0, t2: 0, t3: 0 },
-        intelligence: { naturel: 0, t1: 0, t2: 0, t3: 0 },
-        charisme: { naturel: 0, t1: 0, t2: 0, t3: 0 },
-        adresse: { naturel: 0, t1: 0, t2: 0, t3: 0 },
-        force: { naturel: 0, t1: 0, t2: 0, t3: 0 },
-        perception: { naturel: 0, t1: 0, t2: 0, t3: 0 },
-        esquive: { naturel: 0, t1: 0, t2: 0, t3: 0 },
-        attaque: { naturel: 0, t1: 0, t2: 0, t3: 0 },
-        parade: { naturel: 0, t1: 0, t2: 0, t3: 0 },
-        degats: { naturel: 0, t1: 0, t2: 0, t3: 0 }
-    },
-    temp_modifiers: {
-        mod1: '',
-        mod2: '',
-        mod3: ''
-    },
-    inventory: [],
-    competences: [],
-    competences_specialisation: [],
-    competences_sous_specialisation: []
-};
+import { INITIAL_DATA } from '../constants';
 
 export interface CharacterSheetHandle {
     save: () => Promise<void>;
@@ -174,23 +110,66 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             });
     }, [characterId]);
 
-    const [activeTab, setActiveTab] = useState<'fiche' | 'equipement' | 'competences'>('fiche');
+    const [activeTab, setActiveTab] = useState<'fiche' | 'equipement' | 'status' | 'competences'>('fiche');
 
     // Computed Values for Characteristics Table
+    // Computed Values for Characteristics Table
     // The "Equipé" column now represents the TOTAL Value for each characteristic
-    // Formula: Naturel + T1 + T2 + T3 + (Armor/Accessory Bonuses) - Malus Tête
+    // Formula: Naturel + T1 + T2 + T3 + (Armor/Accessory Bonuses) + Fatigue - Malus Tête
+
+    const getFatigueModifier = (etat: string) => {
+        if (etat === 'Reposé') return 1;
+        if (etat && etat.startsWith('Epuisé')) {
+            const parts = etat.split(' ');
+            if (parts.length > 1) {
+                const level = parseInt(parts[1], 10);
+                return -level;
+            }
+        }
+        return 0; // Normal, Fatigué
+    };
 
     const calculateEquippedValues = () => {
-        const values: Record<keyof Characteristics, number> = {
-            courage: 0, intelligence: 0, charisme: 0, adresse: 0, force: 0,
-            perception: 0, esquive: 0, attaque: 0, parade: 0, degats: 0
+        // Detailed structure for tooltips
+        const values: Record<keyof Characteristics, { value: number, components: { label: string, value: number }[] }> = {
+            courage: { value: 0, components: [] },
+            intelligence: { value: 0, components: [] },
+            charisme: { value: 0, components: [] },
+            adresse: { value: 0, components: [] },
+            force: { value: 0, components: [] },
+            perception: { value: 0, components: [] },
+            esquive: { value: 0, components: [] },
+            attaque: { value: 0, components: [] },
+            parade: { value: 0, components: [] },
+            degats: { value: 0, components: [] }
         };
+
+        const fatigueMod = getFatigueModifier(data.status?.fatigue?.etat);
 
         // Initialize with Base values (Naturel + Temp - Malus)
         (Object.keys(values) as Array<keyof Characteristics>).forEach((key) => {
             const char = data.characteristics[key];
-            const base = (char.naturel || 0) + (char.t1 || 0) + (char.t2 || 0) + (char.t3 || 0);
-            values[key] = base - (data.general.malus_tete || 0);
+            const naturel = char.naturel || 0;
+            const t1 = char.t1 || 0;
+            const t2 = char.t2 || 0;
+            const t3 = char.t3 || 0;
+            const malusTete = data.general.malus_tete || 0;
+
+            const components = [];
+            if (naturel !== 0) components.push({ label: 'Naturel', value: naturel });
+            if (t1 !== 0) components.push({ label: 'T1', value: t1 });
+            if (t2 !== 0) components.push({ label: 'T2', value: t2 });
+            if (t3 !== 0) components.push({ label: 'T3', value: t3 });
+
+            if (malusTete !== 0) components.push({ label: 'Malus Tête', value: -malusTete });
+
+            const etatFatigue = data.status?.fatigue?.etat || 'Normal';
+            if (fatigueMod !== 0) components.push({ label: `Etat de fatigue (${etatFatigue})`, value: fatigueMod });
+
+            const base = naturel + t1 + t2 + t3 - malusTete + fatigueMod;
+
+            values[key].value = base;
+            values[key].components = components;
         });
 
         // Add Inventory Bonuses (excluding Weapons/Unarmed which have their own columns)
@@ -218,7 +197,11 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                         const bonus = parseInt(String(val || 0), 10);
 
                         if (bonus !== 0 && normalizedKey in values) {
-                            values[normalizedKey as keyof Characteristics] += bonus;
+                            values[normalizedKey as keyof Characteristics].value += bonus;
+                            values[normalizedKey as keyof Characteristics].components.push({
+                                label: refItem?.nom, // Fallback name
+                                value: bonus
+                            });
                         }
                     });
                 }
@@ -266,24 +249,24 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
 
         // 2. Add Base Stats for Magic (Moyenne Arrondi Supérieur)
         // Magie Physique: Int + Adr
-        const int = equippedValues.intelligence;
-        const adr = equippedValues.adresse;
+        const int = equippedValues.intelligence.value;
+        const adr = equippedValues.adresse.value;
         const baseMagPhy = Math.ceil((int + adr) / 2);
         totals.magie_physique.value += baseMagPhy;
-        totals.magie_physique.details.components.push({ label: `Moyenne (Int ${int} + Adr ${adr})`, value: baseMagPhy });
+        totals.magie_physique.details.components.push({ label: `Moyenne sup. (INT ${int} + AD ${adr})`, value: baseMagPhy });
 
         // Magie Psychique: Int + Cha
-        const cha = equippedValues.charisme;
+        const cha = equippedValues.charisme.value;
         const baseMagPsy = Math.ceil((int + cha) / 2);
         totals.magie_psychique.value += baseMagPsy;
-        totals.magie_psychique.details.components.push({ label: `Moyenne (Int ${int} + Cha ${cha})`, value: baseMagPsy });
+        totals.magie_psychique.details.components.push({ label: `Moyenne sup. (INT ${int} + CHA ${cha})`, value: baseMagPsy });
 
         // Resistance Magique: Cour + Int + For
-        const cour = equippedValues.courage;
-        const force = equippedValues.force;
+        const cour = equippedValues.courage.value;
+        const force = equippedValues.force.value;
         const baseResMag = Math.ceil((cour + int + force) / 3);
         totals.resistance_magique.value += baseResMag;
-        totals.resistance_magique.details.components.push({ label: `Moyenne (Cour ${cour} + Int ${int} + For ${force})`, value: baseResMag });
+        totals.resistance_magique.details.components.push({ label: `Moyenne sup. (COU ${cour} + INT ${int} + FO ${force})`, value: baseResMag });
 
 
         data.inventory.forEach(item => {
@@ -432,7 +415,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 const baseMarche = Math.ceil(speed * marcheMult / 100);
                 totals.marche.value += baseMarche;
                 totals.marche.details.components.push({
-                    label: `Base origine: ${speed / 100}\nPR sol ${prSolide} => ${marcheMult}`,
+                    label: `Base origine: ${speed / 100} * (PR sol ${prSolide} => ${marcheMult})`,
                     value: baseMarche
                 });
 
@@ -440,7 +423,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 const baseCourse = Math.ceil(speed * courseMult / 100);
                 totals.course.value += baseCourse;
                 totals.course.details.components.push({
-                    label: `Base origine: ${speed / 100}\nPR sol ${prSolide} => ${courseMult})`,
+                    label: `Base origine: ${speed / 100} * (PR sol ${prSolide} => ${courseMult})`,
                     value: baseCourse
                 });
             }
@@ -504,6 +487,12 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'equipement' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
                 >
                     Equipements
+                </button>
+                <button
+                    onClick={() => setActiveTab('status')}
+                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'status' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                >
+                    État
                 </button>
                 <button
                     onClick={() => setActiveTab('competences')}
@@ -582,15 +571,17 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 />
             </div>
 
+            {/* Equipement (Inventory)*/}
             <div className={activeTab === 'equipement' ? 'animate-fade-in' : 'hidden'}>
                 <Inventory
                     inventory={data.inventory}
                     onInventoryChange={(inventory) => setData({ ...data, inventory })}
-                    characterForce={equippedValues.force}
+                    characterForce={equippedValues.force.value}
                     bouclierActif={data.defenses.bouclier_actif}
                 />
             </div>
 
+            {/* Compétences (CompetencesPanel)*/}
             <div className={activeTab === 'competences' ? 'animate-fade-in' : 'hidden'}>
                 <CompetencesPanel
                     title="Compétences origine et métier"
@@ -608,6 +599,14 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     title="Compétences sous spécialisation"
                     competences={data.competences_sous_specialisation || []}
                     onCompetencesChange={(newCompetences) => setData({ ...data, competences_sous_specialisation: newCompetences })}
+                />
+            </div>
+
+            {/* Etat (StatusPanel) */}
+            <div className={activeTab === 'status' ? 'animate-fade-in' : 'hidden'}>
+                <StatusPanel
+                    status={data.status || INITIAL_DATA.status}
+                    onChange={(newStatus) => setData({ ...data, status: newStatus })}
                 />
             </div>
 

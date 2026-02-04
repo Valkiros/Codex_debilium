@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Defenses, ProtectionValue, StatDetail } from '../types';
 import { Tooltip } from './Tooltip';
+import { CalculationDetails } from './CalculationDetails';
+
 
 interface ProtectionsPanelProps {
     defenses: Defenses;
@@ -74,8 +76,7 @@ export const ProtectionsPanel: React.FC<ProtectionsPanelProps> = ({ defenses, co
                         value={isComputed ? baseValue : (data.base || '')}
                         onChange={(e) => !isComputed && handleProtectionChange(category, 'base', e.target.value)}
                         readOnly={isComputed}
-                        className={`w-14 md:w-16 border border-leather/30 rounded text-center ${isComputed ? 'bg-black/5 text-leather-dark cursor-help font-bold' : 'bg-white/50'}`}
-                        placeholder="Base"
+                        className={`w-14 md:w-16 border border-leather/30 rounded text-center ${isComputed ? 'bg-black/5 text-leather-dark cursor-help font-bold' : 'bg-input-bg'}`}
                         onMouseEnter={(e) => {
                             if (isComputed && details) {
                                 const rect = e.currentTarget.getBoundingClientRect();
@@ -96,8 +97,7 @@ export const ProtectionsPanel: React.FC<ProtectionsPanelProps> = ({ defenses, co
                         type="number"
                         value={data.temp || ''}
                         onChange={(e) => handleProtectionChange(category, 'temp', e.target.value)}
-                        className="w-14 md:w-16 bg-white/50 border border-leather/30 rounded text-center"
-                        placeholder="Temp"
+                        className="w-14 md:w-16 bg-input-bg border border-leather/30 rounded text-center"
                     />
                 </div>
                 <span className="text-leather-light mt-4 px-1">=</span>
@@ -137,27 +137,7 @@ export const ProtectionsPanel: React.FC<ProtectionsPanelProps> = ({ defenses, co
             </div>
 
             <Tooltip visible={!!hoveredInfo} position={hoveredInfo ? { x: hoveredInfo.x, y: hoveredInfo.y } : { x: 0, y: 0 }} title="Détails du Calcul">
-                {hoveredInfo && (
-                    <>
-                        <div className="mb-2 text-[#cca43b] text-xs italic border-b border-[#cca43b]/20 pb-1">
-                            {hoveredInfo.details.formula}
-                        </div>
-                        <div className="space-y-1">
-                            {hoveredInfo.details.components.map((comp, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-xs">
-                                    <span className="whitespace-pre-wrap">{comp.label} :</span>
-                                    <span className={`font-bold ${comp.value >= 0 ? 'text-[#eebb44]' : 'text-red-400'}`}>
-                                        {comp.value > 0 ? '+' : ''}{comp.value}
-                                    </span>
-                                </div>
-                            ))}
-                            <div className="border-t border-[#cca43b]/20 mt-2 pt-1 flex justify-between items-center font-bold text-[#eebb44]">
-                                <span>Total :</span>
-                                <span>{hoveredInfo.details.total}</span>
-                            </div>
-                        </div>
-                    </>
-                )}
+                {hoveredInfo && <CalculationDetails details={hoveredInfo.details} />}
             </Tooltip>
         </div>
     );

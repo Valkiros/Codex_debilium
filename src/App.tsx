@@ -16,6 +16,7 @@ import { AdminPanel } from "./components/AdminPanel";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ThemeSelector } from "./components/ThemeSelector";
 
+
 function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);

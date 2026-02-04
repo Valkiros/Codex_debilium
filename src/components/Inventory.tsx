@@ -214,7 +214,7 @@ export const Inventory: React.FC<InventoryProps> = ({ inventory, onInventoryChan
 
     return (
         <div className="md:p-4 text-ink">
-            <h2 className="text-2xl font-serif font-bold text-ink-header drop-shadow-sm mb-4 border-b border-leather pb-2">Inventaire</h2>
+
 
             <div className="grid grid-cols-1 gap-8">
                 {/* Mains Nues takes full width now due to many columns */}

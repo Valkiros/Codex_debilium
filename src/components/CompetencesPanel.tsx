@@ -137,7 +137,7 @@ export const CompetencesPanel: React.FC<CompetencesPanelProps> = ({ title, compe
     const showTooltip = isCtrlPressed && activeTooltipComp && activeTooltipComp.tableau;
 
     return (
-        <div className="mb-6 p-4 bg-parchment/50 rounded-lg border-2 border-leather shadow-sm hover:shadow-md transition-shadow relative">
+        <div className="mb-6 p-6 bg-parchment/30 rounded-lg shadow-sm border border-leather/20 relative">
             {showTooltip && (
                 <div
                     style={{

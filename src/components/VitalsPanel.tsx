@@ -65,7 +65,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange, orig
                             type="number"
                             value={data.current || ''}
                             onChange={(e) => handleValueMaxChange(category, 'current', e.target.value)}
-                            className="bg-white/50 border border-leather/30 rounded px-1 w-full text-center"
+                            className="bg-input-bg border border-leather/30 rounded px-1 w-full text-center"
                         />
                     </div>
                     <div className="flex flex-col w-1/3">
@@ -74,7 +74,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange, orig
                             type="number"
                             value={data.max || ''}
                             onChange={(e) => handleValueMaxChange(category, 'max', e.target.value)}
-                            className="bg-white/50 border border-leather/30 rounded px-1 w-full text-center"
+                            className="bg-input-bg border border-leather/30 rounded px-1 w-full text-center"
                         />
                     </div>
                     <div className="flex flex-col w-1/3">
@@ -83,7 +83,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange, orig
                             type="number"
                             value={data.temp || ''}
                             onChange={(e) => handleValueMaxChange(category, 'temp', e.target.value)}
-                            className={`bg-white/50 border border-leather/30 rounded px-1 w-full text-center font-bold ${data.temp > 0 ? 'text-leather-dark bg-yellow-50' : ''}`}
+                            className="bg-input-bg border border-leather/30 rounded px-1 w-full text-center font-bold"
                         />
                     </div>
                 </div>
@@ -108,7 +108,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange, orig
                 }}
                 onMouseLeave={() => setTooltipPosition(null)}
             >
-                <h3 className="font-serif font-bold text-purple-900 uppercase text-sm flex items-center gap-2">
+                <h3 className="font-serif font-bold text-leather uppercase text-sm flex items-center gap-2">
                     Corruption
                 </h3>
 
@@ -130,7 +130,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange, orig
                             type="number"
                             value={vitals.corruption.current || ''}
                             onChange={(e) => handleCorruptionChange('current', e.target.value)}
-                            className="bg-white/50 border border-leather/30 rounded px-1 w-full text-center"
+                            className="bg-input-bg border border-leather/30 rounded px-1 w-full text-center"
                         />
                     </div>
                     <div className="flex flex-col w-1/2">
@@ -139,7 +139,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({ vitals, onChange, orig
                             type="number"
                             value={vitals.corruption.daily || ''}
                             onChange={(e) => handleCorruptionChange('daily', e.target.value)}
-                            className="bg-white/50 border border-leather/30 rounded px-1 w-full text-center"
+                            className="bg-input-bg border border-leather/30 rounded px-1 w-full text-center"
                         />
                     </div>
                 </div>

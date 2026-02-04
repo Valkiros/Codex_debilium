@@ -142,9 +142,9 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
     };
 
     return (
-        <div className="mb-6 p-4 bg-parchment/50 rounded-lg border-2 border-leather shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-center mb-4 border-b border-leather/30 pb-2">
-                <h3 className="text-xl font-bold text-leather-dark font-serif tracking-wide">Armes</h3>
+        <div className="mb-6 p-6 bg-parchment/30 rounded-lg shadow-sm border border-leather/20">
+            <div className="flex justify-between items-center mb-4 border-b border-leather/20 pb-2">
+                <h3 className="text-xl font-bold text-leather font-serif">Armes</h3>
                 <div className="flex gap-2">
                     <button
                         onClick={handleRemoveLastRow}

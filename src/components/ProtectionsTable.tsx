@@ -2,6 +2,8 @@ import React from 'react';
 import { Equipement, RefEquipement } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { SearchableSelect } from './SearchableSelect';
+import { Tooltip } from './Tooltip';
+
 
 // --- Interface des Propriétés (Props) ---
 // Ce sont les données que le composant reçoit de son parent (Inventory.tsx).
@@ -120,10 +122,13 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
         return total !== 0 ? total : '-'; // Affiche '-' si le total est 0 pour alléger la vue
     };
 
+    // --- Gestion du Tooltip ---
+    const [hoveredInfo, setHoveredInfo] = React.useState<{ id: string, x: number, y: number, content: any } | null>(null);
+
     return (
-        <div className="mb-6 p-4 bg-parchment/50 rounded-lg border-2 border-leather shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-center mb-4 border-b border-leather/30 pb-2">
-                <h3 className="text-xl font-bold text-leather-dark font-serif tracking-wide">Protections</h3>
+        <div className="mb-6 p-6 bg-parchment/30 rounded-lg shadow-sm border border-leather/20 relative">
+            <div className="flex justify-between items-center mb-4 border-b border-leather/20 pb-2">
+                <h3 className="text-xl font-bold text-leather font-serif">Protections</h3>
                 <div className="flex gap-2">
                     <button
                         onClick={handleRemoveLastRow}
@@ -172,6 +177,7 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                         {items.map((item) => {
                             // --- Préparation des données pour l'affichage ---
                             // On va chercher les valeurs de base directement dans la référence
+                            const refItem = referenceOptions.find(r => r.id === item.refId);
                             const refPrSol = getRefValue(item.refId, 'pr_sol');
                             const refPrSpe = getRefValue(item.refId, 'pr_spe');
                             const refPrMag = getRefValue(item.refId, 'pr_mag');
@@ -180,6 +186,12 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                             // Gestion visuelle du bouclier inactif
                             const isShield = getRefValue(item.refId, 'type') === 'Bouclier';
                             const isInactive = isShield && !bouclierActif;
+
+                            const aura = refItem?.raw?.details?.aura || '-';
+                            const type = refItem?.raw?.details?.type || '-';
+                            const rupture = refItem?.raw?.details?.rupture || '-';
+                            const effet = refItem?.raw?.details?.effet || '-';
+                            const idDisplay = refItem?.ref_id || '-';
 
                             return (
                                 <tr key={item.uid} className={`border-b border-leather-light/30 hover:bg-leather/5 transition-opacity duration-300 ${isInactive ? 'opacity-50 grayscale' : ''}`}>
@@ -193,10 +205,20 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                                     </td>
 
                                     {/* Sélecteur d'objet */}
-                                    <td className="p-2 w-48 max-w-[12rem]" title={(() => {
-                                        const r = referenceOptions.find(o => o.id === item.refId);
-                                        return r?.raw.details?.effet || '';
-                                    })()}>
+                                    <td
+                                        className="p-2 w-48 max-w-[12rem] cursor-help"
+                                        onMouseEnter={(e) => {
+                                            if (!refItem) return;
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            setHoveredInfo({
+                                                id: item.uid,
+                                                x: rect.left + (rect.width / 2),
+                                                y: rect.top - 10,
+                                                content: { nom: refItem.nom, idDisplay, type, aura, rupture, effet }
+                                            });
+                                        }}
+                                        onMouseLeave={() => setHoveredInfo(null)}
+                                    >
                                         <SearchableSelect
                                             options={referenceOptions.map(r => ({ id: r.id, label: r.nom }))}
                                             value={item.refId}
@@ -256,13 +278,10 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                                     </td>
 
                                     {/* Description / Effet */}
-                                    <td className="p-2 text-sm max-w-[150px] truncate" title={(() => {
-                                        const r = referenceOptions.find(o => o.id === item.refId);
-                                        return r?.raw.details?.effet || '';
-                                    })()}>
+                                    <td className="p-2 text-sm max-w-[150px] truncate" >
                                         {(() => {
                                             const r = referenceOptions.find(o => o.id === item.refId);
-                                            return r?.raw.details?.effet || '';
+                                            return r?.raw.details?.effet || '-';
                                         })()}
                                     </td>
 
@@ -281,6 +300,33 @@ export const ProtectionsTable: React.FC<ProtectionsTableProps> = ({ items, onIte
                     </tbody>
                 </table>
             </div>
+
+            {/* Harmonized Tooltip */}
+            {hoveredInfo && (
+                <Tooltip visible={!!hoveredInfo} position={{ x: hoveredInfo.x, y: hoveredInfo.y }} title={hoveredInfo.content.nom || 'Objet Inconnu'}>
+                    <div className="flex flex-col gap-1 text-xs min-w-[150px]">
+                        <div className="flex justify-between items-center">
+                            <span className="text-tooltip-label font-medium">ID :</span>
+                            <span className="font-mono text-tooltip-text text-right">{hoveredInfo.content.idDisplay}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-tooltip-label font-medium">Type :</span>
+                            <span className="text-tooltip-text text-right">{hoveredInfo.content.type}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-tooltip-label font-medium">Aura :</span>
+                            <span className="font-bold text-tooltip-title text-right">{hoveredInfo.content.aura}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-tooltip-label font-medium">Rupture :</span>
+                            <span className="text-tooltip-text text-right">{hoveredInfo.content.rupture}</span>
+                        </div>
+                        <div className="border-t border-tooltip-border/50 mt-1 pt-1 italic text-xs text-center text-tooltip-label/80 leading-relaxed font-serif">
+                            {hoveredInfo.content.effet}
+                        </div>
+                    </div>
+                </Tooltip>
+            )}
         </div>
     );
 };

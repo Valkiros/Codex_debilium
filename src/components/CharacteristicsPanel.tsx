@@ -1,23 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Characteristics, CharacteristicColumn, Equipement } from '../types';
 import { Tooltip } from './Tooltip';
+import { CalculationDetails } from './CalculationDetails';
+
+
+interface DetailedValue {
+    value: number;
+    components: { label: string; value: number }[];
+}
 
 interface CharacteristicsPanelProps {
     characteristics: Characteristics;
-    equippedValues: Record<keyof Characteristics, number>;
+    equippedValues: Record<keyof Characteristics, DetailedValue>;
     inventory: Equipement[];
-    referenceOptions: any[]; // Using any[] to match refs passing
+    referenceOptions: any[];
     onChange: (characteristics: Characteristics) => void;
 }
 
 export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
     characteristics,
     equippedValues,
-    inventory = [], // Default to empty array if undefined
+    inventory = [],
     referenceOptions = [],
     onChange
 }) => {
-    const [hoveredInfo, setHoveredInfo] = React.useState<{ id: string, x: number, y: number } | null>(null);
+    const [hoveredInfo, setHoveredInfo] = useState<{ id: string, x: number, y: number, content?: any } | null>(null);
+    const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Control') setIsCtrlPressed(true);
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'Control') setIsCtrlPressed(false);
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
 
     // Update 'Naturel' or standard columns
     const handleCharacteristicChange = (row: keyof Characteristics, col: keyof CharacteristicColumn, value: string) => {
@@ -114,7 +139,7 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                                         value={data.naturel || ''}
                                         onChange={(e) => handleCharacteristicChange(key, 'naturel', e.target.value)}
                                         readOnly={key === 'degats'}
-                                        className={`w-full bg-white/50 border border-leather/30 rounded text-center py-1 font-bold text-leather-dark ${key === 'degats' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        className={`w-full bg-input-bg border border-leather/30 rounded text-center py-1 font-bold text-leather-dark ${key === 'degats' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     />
                                 </td>
 
@@ -127,7 +152,7 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                                         value={data.t1 || ''}
                                         onChange={(e) => handleCharacteristicChange(key, 't1', e.target.value)}
                                         readOnly={key === 'degats'}
-                                        className={`w-full bg-white/50 border border-leather/30 rounded text-center py-1 ${key === 'degats' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        className={`w-full bg-input-bg border border-leather/30 rounded text-center py-1 ${key === 'degats' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     />
                                 </td>
                                 <td className="p-2">
@@ -136,7 +161,7 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                                         value={data.t2 || ''}
                                         onChange={(e) => handleCharacteristicChange(key, 't2', e.target.value)}
                                         readOnly={key === 'degats'}
-                                        className={`w-full bg-white/50 border border-leather/30 rounded text-center py-1 ${key === 'degats' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        className={`w-full bg-input-bg border border-leather/30 rounded text-center py-1 ${key === 'degats' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     />
                                 </td>
                                 <td className="p-2">
@@ -145,15 +170,27 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                                         value={data.t3 || ''}
                                         onChange={(e) => handleCharacteristicChange(key, 't3', e.target.value)}
                                         readOnly={key === 'degats'}
-                                        className={`w-full bg-white/50 border border-leather/30 rounded text-center py-1 ${key === 'degats' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        className={`w-full bg-input-bg border border-leather/30 rounded text-center py-1 ${key === 'degats' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     />
                                 </td>
 
                                 <td className="p-2 bg-leather/5 border-l border-white/20"></td>
 
-                                <td className="p-2">
+                                <td className={`p-2 relative ${key === 'degats' ? 'cursor-default' : 'cursor-help'}`}
+                                    onMouseEnter={(e) => {
+                                        if (key === 'degats') return;
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setHoveredInfo({
+                                            id: `equipped-${key}`,
+                                            x: rect.left + (rect.width / 2),
+                                            y: rect.top - 10,
+                                            content: equippedValues[key]
+                                        });
+                                    }}
+                                    onMouseLeave={() => setHoveredInfo(null)}
+                                >
                                     <span className="block w-full text-center font-bold bg-leather/10 rounded py-1 border border-leather/20">
-                                        {key === 'degats' ? '-' : (equippedValues[key] || 0)}
+                                        {key === 'degats' ? '-' : (equippedValues[key]?.value || 0)}
                                     </span>
                                 </td>
 
@@ -192,7 +229,7 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
 
                                         // Calculate Bonus FO for this specific item column
                                         // 1. Get Base Force (Character Total without this weapon)
-                                        const baseForce = equippedValues.force;
+                                        const baseForce = equippedValues.force?.value || 0;
                                         // 2. Get Item Force Bonus (Instance + Reference)
                                         const instanceForceBonus = item.char_values?.force || 0;
 
@@ -235,7 +272,7 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
 
                                     const refBonus = parseInt(String(refValCarac || refValRoot || refValRaw || 0), 10);
 
-                                    const total = (equippedValues[key] || 0) + instanceBonus + refBonus;
+                                    const total = (equippedValues[key]?.value || 0) + instanceBonus + refBonus;
 
                                     return (
                                         <td key={col.id} className="p-2">
@@ -252,7 +289,18 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
             </table>
 
             {/* Floating Tooltip */}
-            {hoveredInfo && (() => {
+            {hoveredInfo && isCtrlPressed && (() => {
+                // Check if it's an equipped value tooltip (has content)
+                if (hoveredInfo.content) {
+                    const details = hoveredInfo.content as DetailedValue;
+                    return (
+                        <Tooltip visible={!!hoveredInfo} position={{ x: hoveredInfo.x, y: hoveredInfo.y }} title="Détail du calcul">
+                            <CalculationDetails details={details} />
+                        </Tooltip>
+                    );
+                }
+
+                // Standard Item Tooltip (Dynamic Columns)
                 const item = inventory.find(i => i.uid === hoveredInfo.id);
                 if (!item) return null;
                 const refItem = referenceOptions.find(r => r.id === item.refId);
@@ -269,24 +317,26 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
 
                 return (
                     <Tooltip visible={!!hoveredInfo} position={{ x: hoveredInfo.x, y: hoveredInfo.y }} title={refItem?.nom || 'Objet Inconnu'}>
-                        <div className="flex justify-between items-center text-xs">
-                            <span className="text-[#cca43b] font-semibold">ID :</span>
-                            <span className="font-mono">{idDisplay}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                            <span className="text-[#cca43b] font-semibold">Type :</span>
-                            <span>{type}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                            <span className="text-[#cca43b] font-semibold">Aura :</span>
-                            <span className="font-bold text-[#eebb44]">{aura}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                            <span className="text-[#cca43b] font-semibold">Rupture :</span>
-                            <span>{rupture}</span>
-                        </div>
-                        <div className="border-t border-[#cca43b]/20 pt-2 mt-2 italic text-xs text-center text-[#f0e6d2]/80 leading-relaxed">
-                            {effet}
+                        <div className="flex flex-col gap-1 text-xs min-w-[150px]">
+                            <div className="flex justify-between items-center">
+                                <span className="text-tooltip-label font-medium">ID :</span>
+                                <span className="font-mono text-tooltip-text text-right">{idDisplay}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-tooltip-label font-medium">Type :</span>
+                                <span className="text-tooltip-text text-right">{type}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-tooltip-label font-medium">Aura :</span>
+                                <span className="font-bold text-tooltip-title text-right">{aura}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-tooltip-label font-medium">Rupture :</span>
+                                <span className="text-tooltip-text text-right">{rupture}</span>
+                            </div>
+                            <div className="border-t border-tooltip-border/50 mt-1 pt-1 italic text-xs text-center text-tooltip-label/80 leading-relaxed font-serif">
+                                {effet}
+                            </div>
                         </div>
                     </Tooltip>
                 );

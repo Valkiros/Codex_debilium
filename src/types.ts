@@ -212,6 +212,34 @@ export interface CharacterData {
     competences: CharacterCompetence[];
     competences_specialisation: CharacterCompetence[];
     competences_sous_specialisation: CharacterCompetence[];
+    status: CharacterStatus;
+}
+
+// Interfaces pour la nouvelle page "État & Besoins"
+export interface Senses {
+    vue: string;
+    ouie: string;
+    odorat: string;
+    humectation: string;
+    sentir_danger: number;
+}
+
+export interface Fatigue {
+    etat: string;
+    recuperation: string;
+    nb_heure: number;
+}
+
+export interface Alcohol {
+    leger: number;
+    fort: number;
+    gueule_de_bois: number;
+}
+
+export interface CharacterStatus {
+    senses: Senses;
+    fatigue: Fatigue;
+    alcohol: Alcohol;
 }
 
 // Interface pour le résumé du personnage
