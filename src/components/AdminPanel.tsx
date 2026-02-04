@@ -3,8 +3,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { RefEquipement } from '../types';
 import { supabase } from '../lib/supabase';
 import { ConfirmModal } from './ConfirmModal';
-import { CATEGORY_SCHEMAS } from './AdminSchemas';
+import { CATEGORY_SCHEMAS, FieldDef } from '../utils/AdminSchemas';
 import { TableColumnFilter } from './TableColumnFilter';
+import { ThemeSelector } from './ThemeSelector';
 
 interface AdminPanelProps {
     onBack: () => void;
@@ -414,6 +415,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     >
                         Retour
                     </button>
+                    <div className="ml-2 pl-2 border-l border-leather/30">
+                        <ThemeSelector />
+                    </div>
                 </div>
             </div>
 
@@ -422,12 +426,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     <input
                         type="text"
                         placeholder="Recherche globale..."
-                        className="p-2 border border-leather/30 rounded w-64 bg-white/50"
+                        className="p-2 border border-leather/30 rounded w-64 bg-input-bg focus:border-leather outline-none"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     <select
-                        className="p-2 border border-leather/30 rounded bg-white/50"
+                        className="p-2 border border-leather/30 rounded bg-input-bg focus:border-leather outline-none text-leather"
                         value={selectedCategory}
                         onChange={(e) => {
                             setSelectedCategory(e.target.value);
@@ -447,7 +451,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 </button>
             </div>
 
-            <div className="bg-white/40 rounded shadow flex-1 overflow-hidden flex flex-col relative border border-leather/20">
+
+
+            <div className="bg-parchment/30 rounded shadow flex-1 overflow-hidden flex flex-col relative border border-leather/20">
                 <div className="overflow-x-auto overflow-y-auto flex-1 w-full">
                     <table className="text-left text-sm border-collapse min-w-full">
                         <thead className="bg-leather text-parchment uppercase text-xs sticky top-0 z-30 shadow-md">
@@ -486,8 +492,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                             {loading ? (
                                 <tr><td colSpan={currentSchema.length + 3} className="p-4 text-center">Chargement...</td></tr>
                             ) : currentItems.map(item => (
-                                <tr key={item.id} className="hover:bg-white/50 transition-colors group bg-white/20 odd:bg-white/10">
-                                    <td className="p-2 font-bold text-leather-dark sticky left-0 bg-parchment/90 group-hover:bg-parchment z-20 border-r border-leather/10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                                <tr key={item.id} className="hover:bg-leather/10 transition-colors group bg-transparent odd:bg-leather/5">
+                                    <td className="p-2 font-bold text-leather-dark sticky left-0 bg-parchment z-20 border-r border-leather/10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
                                         {item.nom}
                                     </td>
                                     <td className="p-2 text-center text-xs opacity-50 font-mono">
@@ -498,7 +504,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                             {(item as any)[field.key]}
                                         </td>
                                     ))}
-                                    <td className="p-2 text-right whitespace-nowrap sticky right-0 bg-parchment/90 group-hover:bg-parchment z-20 border-l border-leather/10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+                                    <td className="p-2 text-right whitespace-nowrap sticky right-0 bg-parchment z-20 border-l border-leather/10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
                                         <button onClick={() => openEdit(item)} className="text-blue-600 hover:text-blue-800 mr-2 p-1 hover:bg-white/50 rounded" title="Modifier">✏️</button>
                                         <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 p-1 hover:bg-white/50 rounded" title="Supprimer">🗑️</button>
                                     </td>
@@ -518,7 +524,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                 setItemsPerPage(Number(e.target.value));
                                 setCurrentPage(1);
                             }}
-                            className="p-1 border border-leather/30 rounded bg-white/50 cursor-pointer hover:bg-white/80"
+                            className="p-1 border border-leather/30 rounded bg-input-bg cursor-pointer hover:border-leather"
                         >
                             <option value={50}>50</option>
                             <option value={100}>100</option>
@@ -552,86 +558,88 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                         </button>
                     </div>
                 </div>
-            </div>
+            </div >
 
             {/* Modal */}
-            {isModalOpen && editingItem && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-parchment p-6 rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border-2 border-leather flex flex-col">
-                        <h3 className="text-xl font-bold mb-4 border-b border-leather/20 pb-2 flex-shrink-0">
-                            {editingItem.id ? 'Éditer' : 'Créer'} : {editingItem.category}
-                        </h3>
-                        <form onSubmit={handleSave} className="space-y-4 flex-1">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70 mb-1">Catégorie</label>
-                                    <select
-                                        className="w-full p-2 border border-leather/30 rounded bg-white/50"
-                                        value={editingItem.category}
-                                        onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
-                                        disabled={!!editingItem.id}
-                                    >
-                                        {uniqueCategories.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase opacity-70 mb-1">Nom</label>
-                                    <input
-                                        className="w-full p-2 border border-leather/30 rounded bg-white/50"
-                                        value={editingItem.nom}
-                                        onChange={(e) => setEditingItem({ ...editingItem, nom: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-white/20 rounded border border-leather/10">
-                                {currentSchema.map(field => (
-                                    <div key={String(field.key)} className={field.type === 'textarea' ? 'col-span-full' : ''}>
-                                        <label className="block text-[10px] font-bold uppercase opacity-70 mb-1">{field.label}</label>
-                                        {field.type === 'textarea' ? (
-                                            <textarea
-                                                className="w-full p-2 border border-leather/30 rounded bg-white/50 min-h-[60px] text-sm"
-                                                value={(editingItem as any)[field.key] || ''}
-                                                onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
-                                            />
-                                        ) : field.type === 'select' && field.options ? (
-                                            <select
-                                                className="w-full p-2 border border-leather/30 rounded bg-white/50 text-sm"
-                                                value={(editingItem as any)[field.key] || ''}
-                                                onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
-                                            >
-                                                <option value="">-</option>
-                                                {field.options.map(opt => (
-                                                    <option key={opt} value={opt}>{opt}</option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <input
-                                                type={field.type === 'number' ? 'number' : 'text'}
-                                                step={field.type === 'number' ? "0.01" : undefined}
-                                                className="w-full p-2 border border-leather/30 rounded bg-white/50 text-sm"
-                                                value={(editingItem as any)[field.key] || ''}
-                                                onChange={(e) => {
-                                                    const val = field.type === 'number' ? parseFloat(e.target.value) : e.target.value;
-                                                    setEditingItem({ ...editingItem, [field.key as string]: val });
-                                                }}
-                                            />
-                                        )}
+            {
+                isModalOpen && editingItem && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-parchment p-6 rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border-2 border-leather flex flex-col">
+                            <h3 className="text-xl font-bold mb-4 border-b border-leather/20 pb-2 flex-shrink-0">
+                                {editingItem.id ? 'Éditer' : 'Créer'} : {editingItem.category}
+                            </h3>
+                            <form onSubmit={handleSave} className="space-y-4 flex-1">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase opacity-70 mb-1">Catégorie</label>
+                                        <select
+                                            className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather focus:border-leather outline-none"
+                                            value={editingItem.category}
+                                            onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                                            disabled={!!editingItem.id}
+                                        >
+                                            {uniqueCategories.map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                ))}
-                            </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase opacity-70 mb-1">Nom</label>
+                                        <input
+                                            className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather focus:border-leather outline-none"
+                                            value={editingItem.nom}
+                                            onChange={(e) => setEditingItem({ ...editingItem, nom: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                </div>
 
-                            <div className="flex justify-end gap-2 pt-4 border-t border-leather/20">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-leather opacity-70 hover:opacity-100">Annuler</button>
-                                <button type="submit" className="px-4 py-2 bg-leather text-parchment font-bold rounded shadow hover:bg-leather-dark">Sauvegarder</button>
-                            </div>
-                        </form>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-leather/5 rounded border border-leather/10">
+                                    {currentSchema.map(field => (
+                                        <div key={String(field.key)} className={field.type === 'textarea' ? 'col-span-full' : ''}>
+                                            <label className="block text-[10px] font-bold uppercase opacity-70 mb-1">{field.label}</label>
+                                            {field.type === 'textarea' ? (
+                                                <textarea
+                                                    className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather min-h-[60px] text-sm focus:border-leather outline-none"
+                                                    value={(editingItem as any)[field.key] || ''}
+                                                    onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
+                                                />
+                                            ) : field.type === 'select' && field.options ? (
+                                                <select
+                                                    className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather text-sm focus:border-leather outline-none"
+                                                    value={(editingItem as any)[field.key] || ''}
+                                                    onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
+                                                >
+                                                    <option value="">-</option>
+                                                    {field.options.map(opt => (
+                                                        <option key={opt} value={opt}>{opt}</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    type={field.type === 'number' ? 'number' : 'text'}
+                                                    step={field.type === 'number' ? "0.01" : undefined}
+                                                    className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather text-sm focus:border-leather outline-none"
+                                                    value={(editingItem as any)[field.key] || ''}
+                                                    onChange={(e) => {
+                                                        const val = field.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+                                                        setEditingItem({ ...editingItem, [field.key as string]: val });
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-4 border-t border-leather/20">
+                                    <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-leather opacity-70 hover:opacity-100">Annuler</button>
+                                    <button type="submit" className="px-4 py-2 bg-leather text-parchment font-bold rounded shadow hover:bg-leather-dark">Sauvegarder</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <ConfirmModal
                 isOpen={confirmState.isOpen}
@@ -641,6 +649,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 onCancel={closeConfirm}
                 confirmLabel={confirmState.confirmLabel}
             />
-        </div>
+        </div >
     );
 };

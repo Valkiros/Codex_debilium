@@ -15,6 +15,9 @@ interface CharacteristicsPanelProps {
     inventory: Equipement[];
     referenceOptions: any[];
     onChange: (characteristics: Characteristics) => void;
+    globalModifiers?: {
+        pi?: number;
+    };
 }
 
 export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
@@ -22,7 +25,8 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
     equippedValues,
     inventory = [],
     referenceOptions = [],
-    onChange
+    onChange,
+    globalModifiers
 }) => {
     const [hoveredInfo, setHoveredInfo] = useState<{ id: string, x: number, y: number, content?: any } | null>(null);
     const [isCtrlPressed, setIsCtrlPressed] = useState(false);
@@ -243,15 +247,25 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                                         // 4. Compute Bonus FO
                                         const bonusFo = Math.max(0, effectiveForce - 12);
 
-                                        const totalPi = (refPi || 0) + modifVal + bonusFo;
+                                        // Global PI modifiers (Alcohol, Hangover...)
+                                        const globalPi = (globalModifiers?.pi || 0);
+
+                                        const totalPi = (refPi || 0) + modifVal + bonusFo + globalPi;
 
                                         let display = dice;
                                         if (totalPi > 0) display += ` + ${totalPi}`;
                                         else if (totalPi < 0) display += ` - ${Math.abs(totalPi)}`;
 
+                                        // Tooltip details construction
+                                        let tooltipText = `Dégâts Total (Bonus FO: ${bonusFo})`;
+                                        if (globalPi !== 0) {
+                                            tooltipText += `\nModif. Global (Alcool): ${globalPi > 0 ? '+' : ''}${globalPi}`;
+                                        }
+                                        if (display) tooltipText += `\n${display}`;
+
                                         return (
                                             <td key={col.id} className="p-2">
-                                                <span className="block w-full text-center py-1 opacity-70 text-xs font-bold truncate px-1" title={`Dégâts Total (Bonus FO: ${bonusFo})\n${display || '-'}`}>
+                                                <span className="block w-full text-center py-1 opacity-70 text-xs font-bold truncate px-1" title={tooltipText}>
                                                     {display || '-'}
                                                 </span>
                                             </td>

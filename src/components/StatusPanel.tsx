@@ -94,7 +94,7 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ status, onChange }) =>
                             <label className="text-[13px] font-bold uppercase text-leather-light mb-1">Sentir le danger à (m)</label>
                             <input
                                 type="number"
-                                value={status.senses.sentir_danger}
+                                value={status.senses.sentir_danger || ''}
                                 onChange={(e) => updateStatus('senses', 'sentir_danger', parseInt(e.target.value) || 0)}
                                 className="p-2 text-[13px] bg-input-bg border border-leather/30 rounded focus:border-leather outline-none"
                             />
@@ -135,7 +135,7 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ status, onChange }) =>
                             <input
                                 type="number"
                                 min="0"
-                                value={status.fatigue.nb_heure}
+                                value={status.fatigue.nb_heure || ''}
                                 onChange={(e) => updateStatus('fatigue', 'nb_heure', parseInt(e.target.value) || 0)}
                                 className="p-2 text-[13px] bg-input-bg border border-leather/30 rounded focus:border-leather outline-none"
                             />
@@ -160,7 +160,7 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ status, onChange }) =>
                             <input
                                 type="number"
                                 min="0"
-                                value={status.alcohol.leger}
+                                value={status.alcohol.leger || ''}
                                 onChange={(e) => updateStatus('alcohol', 'leger', parseInt(e.target.value) || 0)}
                                 className="p-2 text-[13px] bg-input-bg border border-leather/30 rounded focus:border-leather outline-none"
                             />
@@ -170,7 +170,7 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ status, onChange }) =>
                             <input
                                 type="number"
                                 min="0"
-                                value={status.alcohol.fort}
+                                value={status.alcohol.fort || ''}
                                 onChange={(e) => updateStatus('alcohol', 'fort', parseInt(e.target.value) || 0)}
                                 className="p-2 text-[13px] bg-input-bg border border-leather/30 rounded focus:border-leather outline-none"
                             />
@@ -180,7 +180,7 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ status, onChange }) =>
                             <input
                                 type="number"
                                 min="0"
-                                value={status.alcohol.gueule_de_bois}
+                                value={status.alcohol.gueule_de_bois || ''}
                                 onChange={(e) => updateStatus('alcohol', 'gueule_de_bois', parseInt(e.target.value) || 0)}
                                 className={`p-2 text-[13px] bg-input-bg border border-leather/30 rounded focus:border-leather outline-none`}
                             />

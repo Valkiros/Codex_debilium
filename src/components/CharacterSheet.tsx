@@ -13,6 +13,7 @@ import { CompetencesPanel } from './CompetencesPanel';
 import { StatusPanel } from './StatusPanel';
 import { CharacterData, Equipement, Characteristics, GameRules, Origine } from '../types';
 import { INITIAL_DATA } from '../constants';
+import { getAlcoholModifiers } from '../utils/alcohol';
 
 export interface CharacterSheetHandle {
     save: () => Promise<void>;
@@ -146,6 +147,9 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
 
         const fatigueMod = getFatigueModifier(data.status?.fatigue?.etat);
 
+        // Get Alcohol Modifiers
+        const { leger, fort, gueule_de_bois } = getAlcoholModifiers(data.status || INITIAL_DATA.status);
+
         // Initialize with Base values (Naturel + Temp - Malus)
         (Object.keys(values) as Array<keyof Characteristics>).forEach((key) => {
             const char = data.characteristics[key];
@@ -166,7 +170,34 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             const etatFatigue = data.status?.fatigue?.etat || 'Normal';
             if (fatigueMod !== 0) components.push({ label: `Etat de fatigue (${etatFatigue})`, value: fatigueMod });
 
-            const base = naturel + t1 + t2 + t3 - malusTete + fatigueMod;
+            // Apply Alcohol Modifiers
+            // Key mismatch handling: AlcoholModifiers has specific keys, Characteristics has broader keys
+            // Fortunately, AlcoholModifiers keys overlap with Characteristics keys we care about
+            if (key in leger) {
+                // @ts-ignore
+                const val = leger[key];
+                if (val !== 0) components.push({ label: 'Alcool (léger)', value: val });
+            }
+            if (key in fort) {
+                // @ts-ignore
+                const val = fort[key];
+                if (val !== 0) components.push({ label: 'Alcool (fort)', value: val });
+            }
+            if (key in gueule_de_bois) {
+                // @ts-ignore
+                const val = gueule_de_bois[key];
+                if (val !== 0) components.push({ label: 'Gueule de bois', value: val });
+            }
+
+            let base = naturel + t1 + t2 + t3 - malusTete + fatigueMod;
+
+            // Add alcohol sums to base
+            // @ts-ignore
+            if (key in leger) base += leger[key];
+            // @ts-ignore
+            if (key in fort) base += fort[key];
+            // @ts-ignore
+            if (key in gueule_de_bois) base += gueule_de_bois[key];
 
             values[key].value = base;
             values[key].components = components;
@@ -546,6 +577,11 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                         inventory={data.inventory}
                         referenceOptions={refs}
                         onChange={(characteristics) => setData({ ...data, characteristics })}
+                        globalModifiers={{
+                            pi: (getAlcoholModifiers(data.status || INITIAL_DATA.status).leger.pi || 0) +
+                                (getAlcoholModifiers(data.status || INITIAL_DATA.status).fort.pi || 0) +
+                                (getAlcoholModifiers(data.status || INITIAL_DATA.status).gueule_de_bois.pi || 0)
+                        }}
                     />
                 </div>
 
