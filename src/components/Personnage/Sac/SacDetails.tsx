@@ -40,6 +40,7 @@ export const SacDetails: React.FC<SacDetailsProps> = ({
     };
 
     const refItem = sac ? referenceOptions.find(r => r.id === sac.refId) : undefined;
+    const effect = refItem?.effet || (refItem as any)?.details?.effet;
 
     // Determine capacity: Check details.capacite
     const capacityRaw = refItem
@@ -63,7 +64,7 @@ export const SacDetails: React.FC<SacDetailsProps> = ({
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
     const handleMouseEnter = (e: React.MouseEvent) => {
-        if (refItem?.effet) {
+        if (effect) {
             setShowTooltip(true);
             setTooltipPos({ x: e.clientX, y: e.clientY });
         }
@@ -88,7 +89,7 @@ export const SacDetails: React.FC<SacDetailsProps> = ({
                     onMouseEnter={handleMouseEnter}
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
-                    className="relative"
+                    className={`relative ${effect ? 'cursor-help' : ''}`}
                 >
                     <label className="block text-xs font-bold text-leather uppercase mb-1">Modèle de sac</label>
                     <SearchableSelect
@@ -99,7 +100,7 @@ export const SacDetails: React.FC<SacDetailsProps> = ({
                         placeholder="Choisir un sac à dos..."
                     />
                     <Tooltip visible={showTooltip} position={tooltipPos} title={refItem?.nom} requireCtrl={true}>
-                        {refItem?.effet}
+                        {effect}
                     </Tooltip>
                 </div>
 
@@ -152,11 +153,6 @@ export const SacDetails: React.FC<SacDetailsProps> = ({
                                 </span>
                             </div>
                         </div>
-                        {refItem?.effet && (
-                            <div className="mt-2 text-xs italic text-ink-light border-t border-leather/10 pt-1">
-                                {refItem.effet}
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
