@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sac, RefEquipement } from '../../../types';
-import { getItemWeight } from '../../../utils/sacUtils';
+import { getItemWeight, getMaxRuptureOptions } from '../../../utils/sacUtils';
 import { Tooltip } from '../../Shared/Tooltip';
 
 interface SacTableProps {
@@ -107,13 +107,15 @@ const SacRow = React.memo(({ item, referenceOptions, onUpdateQuantity, onRemove,
             {/* Mod Rupt */}
             <td className="p-2 text-center align-top pt-2">
                 {showModRupt ? (
-                    <input
-                        type="number"
-                        value={item.modif_rupture || ''}
+                    <select
+                        value={item.modif_rupture || 0}
                         onChange={(e) => onUpdateField(item.uid, 'modif_rupture', parseInt(e.target.value) || 0)}
-                        className="w-10 bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
-                        placeholder="+0"
-                    />
+                        className="w-12 bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
+                    >
+                        {getMaxRuptureOptions(refItem?.rupture || (refItem as any)?.details?.rupture).map(opt => (
+                            <option key={opt} value={opt}>+{opt}</option>
+                        ))}
+                    </select>
                 ) : <span className="text-gray-300">-</span>}
             </td>
 

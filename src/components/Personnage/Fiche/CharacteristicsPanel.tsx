@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Characteristics, CharacteristicColumn, Equipement } from '../../../types';
 import { Tooltip } from '../../Shared/Tooltip';
 import { CalculationDetails } from './CalculationDetails';
+import { calculateFinalRupture } from '../../../utils/sacUtils';
 
 
 interface DetailedValue {
@@ -334,9 +335,10 @@ export const CharacteristicsPanel: React.FC<CharacteristicsPanelProps> = ({
                 // Prioritize 'details' object from correct backend schema
                 const details = refItem?.details || {};
 
+
                 const effet = details.effet || '-';
                 const aura = details.aura || '-';
-                const rupture = details.rupture || '-';
+                const rupture = calculateFinalRupture(details.rupture, item.modif_rupture);
                 const type = details.type || '-';
 
                 const idDisplay = refItem?.ref_id || '-';

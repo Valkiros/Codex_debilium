@@ -2,6 +2,7 @@ import React from 'react';
 import { Equipement, RefEquipement } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { SearchableSelect } from '../../Shared/SearchableSelect';
+import { calculateFinalRupture, getMaxRuptureOptions } from '../../../utils/sacUtils';
 
 interface AccessoiresTableProps {
     items: Equipement[];
@@ -222,15 +223,19 @@ export const AccessoiresTable: React.FC<AccessoiresTableProps> = ({ items, onIte
                                             <option value="Cassé">Cassé</option>
                                         </select>
                                     </td>
-                                    <td className="p-2 text-center">{refRupture || '-'}</td>
+                                    <td className="p-2 text-center">
+                                        {calculateFinalRupture(refRupture, item.modif_rupture)}
+                                    </td>
                                     <td className="p-2">
-                                        <input
-                                            type="text"
-                                            value={item.modif_rupture || ''}
-                                            onChange={(e) => handleUpdateField(item.uid, 'modif_rupture', e.target.value)}
-                                            className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
-                                            placeholder="+0"
-                                        />
+                                        <select
+                                            value={item.modif_rupture || 0}
+                                            onChange={(e) => handleUpdateField(item.uid, 'modif_rupture', parseInt(e.target.value) || 0)}
+                                            className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center text-sm"
+                                        >
+                                            {getMaxRuptureOptions(refRupture).map(opt => (
+                                                <option key={opt} value={opt}>+{opt}</option>
+                                            ))}
+                                        </select>
                                     </td>
 
                                     {/* Effet */}

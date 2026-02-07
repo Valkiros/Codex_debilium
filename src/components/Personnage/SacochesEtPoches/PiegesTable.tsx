@@ -2,6 +2,7 @@ import React from 'react';
 import { Equipement, RefEquipement } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { SearchableSelect } from '../../Shared/SearchableSelect';
+import { calculateFinalRupture, getMaxRuptureOptions } from '../../../utils/sacUtils';
 
 interface PiegesTableProps {
     items: Equipement[];
@@ -107,16 +108,18 @@ export const PiegesTable: React.FC<PiegesTableProps> = ({ items, onItemsChange, 
                                     </select>
                                 </td>
                                 <td className="p-2 text-center text-ink-light">
-                                    {refItem?.rupture || getRefValue(item.refId, 'details', 'rupture') || '-'}
+                                    {calculateFinalRupture(refItem?.rupture || getRefValue(item.refId, 'details', 'rupture'), item.modif_rupture)}
                                 </td>
                                 <td className="p-2">
-                                    <input
-                                        type="number"
-                                        value={item.modif_rupture || ''}
+                                    <select
+                                        value={item.modif_rupture || 0}
                                         onChange={(e) => handleUpdateField(item.uid, 'modif_rupture', parseInt(e.target.value) || 0)}
-                                        className="w-full bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none"
-                                        placeholder="+0"
-                                    />
+                                        className="w-full bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none text-sm"
+                                    >
+                                        {getMaxRuptureOptions(refItem?.rupture || getRefValue(item.refId, 'details', 'rupture')).map(opt => (
+                                            <option key={opt} value={opt}>+{opt}</option>
+                                        ))}
+                                    </select>
                                 </td>
                                 <td className="p-2 text-center">
                                     <button onClick={() => handleRemoveRow(item.uid)} className="text-red-500 hover:text-red-700 font-bold">&times;</button>

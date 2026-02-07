@@ -3,6 +3,7 @@ import { Sac, RefEquipement } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { SearchableSelect } from '../../Shared/SearchableSelect';
 import { Tooltip } from '../../Shared/Tooltip';
+import { calculateFinalRupture, getMaxRuptureOptions } from '../../../utils/sacUtils';
 
 interface SacDetailsProps {
     sac: Sac | undefined;
@@ -124,19 +125,23 @@ export const SacDetails: React.FC<SacDetailsProps> = ({
                             {/* Rupture */}
                             <div className="col-span-1 border-l border-leather/10 pl-2">
                                 <span className="font-bold text-leather text-xs block mb-1">Rupture:</span>
-                                <span className="text-ink">{(refItem as any)?.details?.rupture || '-'}</span>
+                                <span className="text-ink">
+                                    {calculateFinalRupture((refItem as any)?.details?.rupture, sac?.modif_rupture)}
+                                </span>
                             </div>
 
                             {/* Modif Rupture */}
                             <div className="col-span-1 border-r border-leather/10 pr-2">
                                 <span className="font-bold text-leather text-xs block mb-1">Modif (rupt.):</span>
-                                <input
-                                    type="number"
-                                    value={sac?.modif_rupture || ''}
+                                <select
+                                    value={sac?.modif_rupture || 0}
                                     onChange={(e) => sac && onSacChange({ ...sac, modif_rupture: parseInt(e.target.value) || 0 })}
                                     className="w-full bg-transparent border-b border-leather/20 focus:border-leather outline-none text-center text-xs"
-                                    placeholder="+0"
-                                />
+                                >
+                                    {getMaxRuptureOptions((refItem as any)?.details?.rupture).map(opt => (
+                                        <option key={opt} value={opt}>+{opt}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             {/* Capacité */}
