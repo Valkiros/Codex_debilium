@@ -19,24 +19,6 @@ export const CompetencesPanel: React.FC<CompetencesPanelProps> = ({ title, compe
     // Tooltip State
     const [hoveredCompId, setHoveredCompId] = useState<string | null>(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-    const [isCtrlPressed, setIsCtrlPressed] = useState(false);
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Control') setIsCtrlPressed(true);
-        };
-        const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.key === 'Control') setIsCtrlPressed(false);
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('keyup', handleKeyUp);
-
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('keyup', handleKeyUp);
-        };
-    }, []);
 
     const handleMouseEnter = (id: string, e: React.MouseEvent) => {
         setHoveredCompId(id);

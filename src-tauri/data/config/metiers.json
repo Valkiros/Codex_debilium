@@ -22,12 +22,11 @@
 					"PRD": 1
 				},
 				"Attributs_specifiques": {
-					"AS1": "AT +1 (automatique)",
-					"AS2": "PRD +1 (automatique)",
-					"AS3": "PR nat+1",
-					"AS4": "Réduit de 2pts les malus des attaques ciblées.",
-					"AS5": "Pi+3 pour les attaques non ciblées.",
-					"AS6": "Donne les compétences 'Ils ne font pas le poids' et 'Frappe lourde'."
+					"AS1": "AT+1 et PRD+1 (automatique)",
+					"AS2": "PR nat+1",
+					"AS3": "Réduit de 2pts les malus des attaques ciblées.",
+					"AS4": "Pi+3 pour les attaques non ciblées.",
+					"AS5": "Donne les compétences 'Ils ne font pas le poids' et 'Frappe lourde'."
 				},
 				"Competences": [
 					"Ils ne font pas le poids",
@@ -70,15 +69,14 @@
 							"PRD": 1
 						},
 						"Attributs_specifiques": {
-							"AS1": "ES +1",
-							"AS2": "PRD +1",
-							"AS3": "Critique +1",
-							"AS4": "Toutes les armes à 1 mains peuvent être utilisées à 2 mains avec le bonus de Pi+2.",
-							"AS5": "Les coups critiques subis par ou infligés au héros ne peuvent pas faire 19 ou 20.",
-							"AS6": "Après une esquive sur 1 au D4, le héros peut quand même attaquer à son tour.",
-							"AS7": "Le héros est immunisé aux effets de 'Peur'.",
-							"AS8": "Les ennemis faisant un échec critique frappent forcément leur allié le plus proche (si possible).",
-							"AS9": "Donne accès à 3 compétences au choix."
+							"AS1": "ES+1 et PRD+1 (automatique)",
+							"AS2": "Crit+1",
+							"AS3": "Toutes les armes à 1 mains peuvent être utilisées à 2 mains avec le bonus de Pi+2.",
+							"AS4": "Les coups critiques subis par ou infligés au héros ne peuvent pas faire 19 ou 20.",
+							"AS5": "Après une esquive sur 1 au D4, le héros peut quand même attaquer à son tour.",
+							"AS6": "Le héros est immunisé aux effets de 'Peur'.",
+							"AS7": "Les ennemis faisant un échec critique frappent forcément leur allié le plus proche (si possible).",
+							"AS8": "Donne accès à 3 compétences au choix."
 						},
 						"Competences_obligatoires": [],
 						"Nombre_competences_choix": 3,
@@ -102,12 +100,11 @@
 					"PRD": 1
 				},
 				"Attributs_specifiques": {
-					"AS1": "FO +1",
-					"AS2": "PRD +1",
-					"AS3": "AT +2 si le héros utilise un bouclier.",
-					"AS4": "Peut relancer une épreuve de COU ratée sauf critique.",
-					"AS5": "Le héros dispose de 2 parades et 1 attaque par assaut.",
-					"AS6": "Donne les compétences 'Même pas mal', 'C'est moi le monstre ici' et 'Chef de groupe'."
+					"AS1": "FO+1 et PRD+1 (automatique)",
+					"AS2": "AT+2 si le héros utilise un bouclier.",
+					"AS3": "Peut relancer une épreuve de COU ratée sauf critique.",
+					"AS4": "Le héros dispose de 2 parades et 1 attaque par assaut.",
+					"AS5": "Donne les compétences 'Même pas mal', 'C'est moi le monstre ici' et 'Chef de groupe'."
 				},
 				"Competences": [
 					"Même pas mal",
@@ -124,12 +121,12 @@
 							"PRD": 1
 						},
 						"Attributs_specifiques": {
-							"AS1": "PRD +1",
-							"AS2": "PRD critique +3 et effet de parade critique +5.",
-							"AS3": "PR naturelle +1",
+							"AS1": "PRD+1 (automatique)",
+							"AS2": "PRD crit+3 et effet de parade critique +5.",
+							"AS3": "PR nat+1",
 							"AS4": "Pv max +10",
 							"AS5": "La PR solide ne réduit plus la vitesse de déplacement tactique.",
-							"AS6": "Chaque ennemi au contact du héros lui donne PR naturelle +1.",
+							"AS6": "Chaque ennemi au contact du héros lui donne PR nat+1.",
 							"AS7": "En combat, le premier coup subi par le héros n'inflige aucun dégât.",
 							"AS8": "Donne accès à 3 compétences au choix."
 						},
@@ -150,7 +147,7 @@
 						"Necessite_competence": "",
 						"Attributs_automatisables": {},
 						"Attributs_specifiques": {
-							"AS1": "En combat, le héros a INT +2.",
+							"AS1": "En combat, le héros a INT+2.",
 							"AS2": "Si la compagnie a prévu un plan avant un combat le héros a COU+1, AT+1, PRD+1 et AD tir+1 pendant les 3 premiers assauts.",
 							"AS3": "1 fois par combat, au lieu d'attaquer, le héros peut désigner une cible à ses alliés sur INT. Toutes les attaques infligées à cette cible ont Pi+3. Si le héros a désigné cette cible avant le combat alors le bonus est de Pi+5. La cible doit être visible par le héros.",
 							"AS4": "L'action de changer d'arme ne prends pas d'assaut. Fouiller dans un sac ne prend qu'1D4 assauts.",
@@ -164,6 +161,79 @@
 							"Forth Eorlingas",
 							"Message à caractère informatif",
 							"Voici vos ordres"
+						]
+					}
+				]
+			},
+			{
+				"ID": "champion_arene",
+				"Name_M": "Champion d'arène",
+				"Name_F": "Championne d'arène",
+				"Necessite_competence": "",
+				"Attributs_automatisables": {},
+				"Attributs_specifiques": {
+					"AS1": "Si le héros affronte un ennemi ayant plus de Force que lui, il obtient AT+1, AD Tir+1 et Crit+1.",
+					"AS2": "Si le héros porte moins de 5 PR solide, il obtient AT+1 et PRD+1.",
+					"AS3": "Pi+3 à mains nues et avec les armes ayant un minimum de FO requis.",
+					"AS4": "Le héros est immunisé à l'effet 'Peur'.",
+					"AS5": "Donne les compétences 'Je suis là pour boire des bières et trancher des têtes', 'Et je suis à court de bière' et 'Combo'."
+				},
+				"Competences": [
+					"Je suis là pour boire des bières et trancher des têtes",
+					"Et je suis à court de bière",
+					"Combo"
+				],
+				"SousSpecialisations": [
+					{
+						"ID": "tueur_geant",
+						"Name_M": "Tueur de géants",
+						"Name_F": "Tueuse de géants",
+						"Necessite_competence": "",
+						"Attributs_automatisables": {},
+						"Attributs_specifiques": {
+							"AS1": "Inflige 1D de Pi supplémentaire aux ennemis de grande taille.",
+							"AS2": "Tant que l'adversaire que le héros attaque, a plus de Pv que lui, le héros a Pi+3 et Crit+2",
+							"AS3": "Le héros peut attaquer après avoir esquivé s'il affronte un ennemi imparable (trait, arme ou attaque spéciale).",
+							"AS4": "Si le héros a 'INTIMIDER' alors la compagnie ne souffre pas des effets de 'Terreur/Peur' et du trait 'Terrifiant'.",
+							"AS5": "Le héros ignore la PR nat des monstre.",
+							"AS6": "Le héros est imunisé aux hémorragies.",
+							"AS7": "Donne accès à 3 compétences au choix."
+						},
+						"Competences_obligatoires": [],
+						"Nombre_competences_choix": 3,
+						"Competences_choix": [
+							"Canon anti-aérien",
+							"Mangeur de flèches",
+							"Ça ne mange pas de pain",
+							"C'est celui-là?",
+							"Double peine"
+						]
+					},
+					{
+						"ID": "boxeur_renomme",
+						"Name_M": "Boxeur de renom",
+						"Name_F": "Boxeuse de renom",
+						"Necessite_competence": "",
+						"Attributs_automatisables": {
+							"FO": 1,
+							"AT": 1,
+							"ES": 1
+						},
+						"Attributs_specifiques": {
+							"AS1": "FO+1, AT+1 et ES+1 (automatique)",
+							"AS2": "Réduit de 2 pts les malus des attaques ciblées à mains nues et aux coups spéciaux à mains nues.",
+							"AS3": "Le héros peut attaquer après une ES réussie à mains nues.",
+							"AS4": "1 fois par combat : le héros peut ajouter son bonus de FO 2 fois pour un coup au moment de lancer les dés de dégât.",
+							"AS5": "Donne accès à 3 compétences au choix."
+						},
+						"Competences_obligatoires": [],
+						"Nombre_competences_choix": 3,
+						"Competences_choix": [
+							"Sel sur les plaies",
+							"Pains, beignes et patates",
+							"Feinte",
+							"Riposte",
+							"Descente de l'oiseau"
 						]
 					}
 				]

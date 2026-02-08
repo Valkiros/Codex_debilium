@@ -44,8 +44,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ visible, position, title, chil
     const verticalClass = effectiveDirection === 'top' ? '-translate-y-full' : 'translate-y-0';
     const topStyle = effectiveDirection === 'top' ? position.y - 10 : position.y + 10;
 
-    // Debug log
-    console.log('Tooltip rendering at:', position, title);
+
 
     return createPortal(
         <div

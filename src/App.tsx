@@ -15,7 +15,9 @@ import { AdminPanel } from "./components/Admin/AdminPanel";
 
 import { ThemeProvider } from "./context/ThemeContext";
 import { ThemeSelector } from "./components/Shared/ThemeSelector";
+import { ErrorBoundary } from "./components/Shared/ErrorBoundary";
 
+// ... existing imports
 
 function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
@@ -61,7 +63,6 @@ function AppContent() {
         // Simple check for now: always fetch on auth change is safer than stale data
         fetchProfile(session.user.id);
       } else {
-        setSelectedCharacterId(null);
         setUserProfile(null);
       }
     });
@@ -131,11 +132,13 @@ function AppContent() {
     content = <AdminPanel onBack={handleChangeCharacter} />;
   } else if (selectedCharacterId) {
     content = (
-      <CharacterSheet
-        ref={sheetRef}
-        characterId={selectedCharacterId}
-        onDirtyChange={setIsDirty}
-      />
+      <ErrorBoundary>
+        <CharacterSheet
+          ref={sheetRef}
+          characterId={selectedCharacterId}
+          onDirtyChange={setIsDirty}
+        />
+      </ErrorBoundary>
     );
   } else {
     content = (
