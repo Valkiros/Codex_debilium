@@ -706,8 +706,11 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                             const oldSpecId = getSpecId(oldIdentity.metier, oldIdentity.specialisation || '');
                             const newSpecId = getSpecId(updatedIdentity.metier, updatedIdentity.specialisation);
 
-                            if (oldSpecId !== newSpecId && !updatedIdentity.sous_specialisation) {
-                                updatedIdentity.sous_specialisation = '';
+                            if (oldSpecId !== newSpecId) {
+                                // Spec changed -> Reset Sub-Spec
+                                if (!updatedIdentity.sous_specialisation) {
+                                    updatedIdentity.sous_specialisation = '';
+                                }
                             }
                         } else {
                             // Spec cleared
@@ -715,7 +718,30 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                         }
                     }
 
-                    setData({ ...data, identity: updatedIdentity });
+                    // --- RESET LOGIC FOR COMPETENCES ---
+                    let newCompetencesSpec = data.competences_specialisation;
+                    let newCompetencesSubSpec = data.competences_sous_specialisation;
+
+                    // 1. Specialization Changed ?
+                    if (updatedIdentity.specialisation !== oldIdentity.specialisation) {
+                        // Reset Spec Comps
+                        newCompetencesSpec = [];
+                        // Reset Sub-Spec identity (already handled above but enforcing consistency) & Comps
+                        updatedIdentity.sous_specialisation = '';
+                        newCompetencesSubSpec = [];
+                    }
+                    // 2. Sub-Specialization Changed ? (Only if spec didn't change, otherwise it's already wiped)
+                    else if (updatedIdentity.sous_specialisation !== oldIdentity.sous_specialisation) {
+                        // Reset Sub-Spec Comps
+                        newCompetencesSubSpec = [];
+                    }
+
+                    setData({
+                        ...data,
+                        identity: updatedIdentity,
+                        competences_specialisation: newCompetencesSpec,
+                        competences_sous_specialisation: newCompetencesSubSpec
+                    });
                 }}
                 onVitalsChange={(vitals) => setData({ ...data, vitals })}
                 onGeneralChange={(general) => {

@@ -109,12 +109,12 @@
 					"AS5": "Le héros dispose de 2 parades et 1 attaque par assaut.",
 					"AS6": "Donne les compétences 'Même pas mal', 'C'est moi le monstre ici' et 'Chef de groupe'."
 				},
-				"Competences_obligatoires": [
+				"Competences": [
 					"Même pas mal",
 					"C'est moi le monstre ici",
 					"Chef de groupe"
 				],
-				"Specialisations": [
+				"SousSpecialisations": [
 					{
 						"ID": "mur_acier_mobile",
 						"Name_M": "Mur d'acier mobile",
@@ -138,9 +138,9 @@
 						"Competences_choix": [
 							"Ecarte-toi",
 							"Ma grand-mère se bat mieux que toi",
-							"NOOOON AAAAATTEEEENTIOOON",
+							"NOOOOON AAAAATTEEEENTIOOON",
 							"Revêtement en âmes fraiches",
-							"Rondache tamponeuse"
+							"Rondache tamponneuse"
 						]
 					},
 					{

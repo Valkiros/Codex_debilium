@@ -4,6 +4,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
 import { Identity, Vitals, CharacterData, GameRules, Origine, Metier, Requirements, Characteristics, GeneralStats } from '../../../types';
 import { VitalsPanel } from './VitalsPanel';
+import { Tooltip } from '../../Shared/Tooltip';
 
 interface CharacterHeaderProps {
     identity: Identity;
@@ -209,12 +210,20 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 relative">
                     {/* Tooltip for Specs */}
                     {hoveredSpec && (
-                        <div className="absolute z-50 bg-black/90 text-white p-2 rounded shadow-lg text-xs w-64 pointer-events-none" style={{ top: '100%', left: '50%', transform: 'translateX(-50%)' }}>
-                            <div className="font-bold underline mb-1">{hoveredSpec.title}</div>
+                        <Tooltip
+                            visible={!!hoveredSpec}
+                            position={{ x: hoveredSpec.x, y: hoveredSpec.y }}
+                            title={hoveredSpec.title}
+                            requireCtrl={true}
+                            direction="auto"
+                        >
                             {Object.entries(hoveredSpec.data).map(([key, value]) => (
-                                <div key={key}><span className="font-bold text-yellow-500">{key}:</span> {String(value)}</div>
+                                <div key={key} className="text-tooltip-text flex gap-2">
+                                    <span className="font-bold min-w-[10px]">-</span>
+                                    <span>{String(value)}</span>
+                                </div>
                             ))}
-                        </div>
+                        </Tooltip>
                     )}
 
                     <div className="flex flex-col">
@@ -277,19 +286,25 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
                             <select
                                 value={identity.specialisation || ''}
                                 onChange={(e) => handleIdentityChange('specialisation', e.target.value)}
-                                onMouseEnter={() => {
+                                onMouseEnter={(e) => {
                                     if (!identity.specialisation || !rules) return;
                                     const currentMetier = rules.metiers.find(m => m.name_m === identity.metier || m.name_f === identity.metier);
                                     if (!currentMetier || !currentMetier.specialisations) return;
 
                                     const spec = currentMetier.specialisations.find(s => s.name_m === identity.specialisation || s.name_f === identity.specialisation);
                                     if (spec && spec.attributs_specifiques) {
-                                        setHoveredSpec({ title: identity.specialisation, data: spec.attributs_specifiques });
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setHoveredSpec({
+                                            title: identity.specialisation,
+                                            data: spec.attributs_specifiques,
+                                            x: rect.left + (rect.width / 2),
+                                            y: rect.top
+                                        });
                                     }
                                 }}
                                 onMouseLeave={() => setHoveredSpec(null)}
                                 disabled={generalStats.niveau < 5}
-                                className={`w-full bg-transparent border-b border-leather focus:border-leather-dark outline-none py-1 font-serif text-lg text-leather-dark appearance-none ${generalStats.niveau < 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`w-full bg-transparent border-b border-leather focus:border-leather-dark outline-none py-1 font-serif text-lg text-leather-dark appearance-none cursor-help ${generalStats.niveau < 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <option value="">Sélectionner</option>
                                 {rules && identity.metier && (() => {
@@ -333,19 +348,25 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
                             <select
                                 value={identity.sous_specialisation || ''}
                                 onChange={(e) => handleIdentityChange('sous_specialisation', e.target.value)}
-                                onMouseEnter={() => {
+                                onMouseEnter={(e) => {
                                     if (!identity.sous_specialisation || !rules || !identity.specialisation) return;
                                     const currentMetier = rules.metiers.find(m => m.name_m === identity.metier || m.name_f === identity.metier);
                                     const currentSpec = currentMetier?.specialisations?.find(s => s.name_m === identity.specialisation || s.name_f === identity.specialisation);
                                     const subSpec = currentSpec?.sous_specialisations?.find(s => s.name_m === identity.sous_specialisation || s.name_f === identity.sous_specialisation);
 
                                     if (subSpec && subSpec.attributs_specifiques) {
-                                        setHoveredSpec({ title: identity.sous_specialisation, data: subSpec.attributs_specifiques });
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setHoveredSpec({
+                                            title: identity.sous_specialisation,
+                                            data: subSpec.attributs_specifiques,
+                                            x: rect.left + (rect.width / 2),
+                                            y: rect.top
+                                        });
                                     }
                                 }}
                                 onMouseLeave={() => setHoveredSpec(null)}
                                 disabled={generalStats.niveau < 10 || !identity.specialisation}
-                                className={`w-full bg-transparent border-b border-leather focus:border-leather-dark outline-none py-1 font-serif text-lg text-leather-dark appearance-none ${generalStats.niveau < 10 || !identity.specialisation ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`w-full bg-transparent border-b border-leather focus:border-leather-dark outline-none py-1 font-serif text-lg text-leather-dark appearance-none cursor-help ${generalStats.niveau < 10 || !identity.specialisation ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <option value="">Sélectionner</option>
                                 {rules && identity.specialisation && (() => {

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Competence, CharacterCompetence, GameRules } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
+import { Tooltip } from '../../Shared/Tooltip';
 import { SearchableSelect } from '../../Shared/SearchableSelect';
 
 interface SpecializationCompetencesPanelProps {
@@ -39,6 +40,23 @@ export const SpecializationCompetencesPanel: React.FC<SpecializationCompetencesP
             .catch(err => console.error("Failed to fetch reference competences:", err));
     }, []);
 
+    // Tooltip State
+    const [hoveredCompId, setHoveredCompId] = useState<string | null>(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+    const handleMouseEnter = (id: string, e: React.MouseEvent) => {
+        setHoveredCompId(id);
+        setMousePos({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        setMousePos({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleMouseLeave = () => {
+        setHoveredCompId(null);
+    };
+
     // Effect to sync mandatory competencies
     useEffect(() => {
         if (!rules || !identity.metier) return;
@@ -52,8 +70,17 @@ export const SpecializationCompetencesPanel: React.FC<SpecializationCompetencesP
 
         if (type === 'specialisation' && identity.specialisation) {
             const spec = currentMetier.specialisations?.find(s => s.name_m === identity.specialisation || s.name_f === identity.specialisation);
-            if (spec && spec.competences) {
-                requiredComps = spec.competences;
+            if (spec) {
+                // Handle inconsistent naming in JSON
+                if (spec.competences && spec.competences.length > 0) {
+                    requiredComps = spec.competences;
+                } else if ((spec as any).Competences && (spec as any).Competences.length > 0) {
+                    requiredComps = (spec as any).Competences;
+                } else if ((spec as any).Competences_obligatoires && (spec as any).Competences_obligatoires.length > 0) {
+                    requiredComps = (spec as any).Competences_obligatoires;
+                } else if ((spec as any).competences_obligatoires && (spec as any).competences_obligatoires.length > 0) {
+                    requiredComps = (spec as any).competences_obligatoires;
+                }
             }
         }
         else if (type === 'sous_specialisation' && identity.specialisation && identity.sous_specialisation) {
@@ -61,8 +88,12 @@ export const SpecializationCompetencesPanel: React.FC<SpecializationCompetencesP
             const subSpec = spec?.sous_specialisations?.find(s => s.name_m === identity.sous_specialisation || s.name_f === identity.sous_specialisation);
 
             if (subSpec) {
-                if (subSpec.competences_obligatoires) {
+                if (subSpec.competences_obligatoires && subSpec.competences_obligatoires.length > 0) {
                     requiredComps = [...subSpec.competences_obligatoires];
+                } else if ((subSpec as any).Competences_obligatoires && (subSpec as any).Competences_obligatoires.length > 0) {
+                    requiredComps = [...(subSpec as any).Competences_obligatoires];
+                } else if ((subSpec as any).competences && (subSpec as any).competences.length > 0) {
+                    requiredComps = [...(subSpec as any).competences];
                 }
 
                 // Check if it's Fossoyeur d'armées
@@ -171,14 +202,24 @@ export const SpecializationCompetencesPanel: React.FC<SpecializationCompetencesP
 
         if (type === 'specialisation' && identity.specialisation) {
             const spec = currentMetier?.specialisations?.find(s => s.name_m === identity.specialisation || s.name_f === identity.specialisation);
-            if (spec?.competences) requiredComps = spec.competences;
+            if (spec) {
+                if (spec.competences && spec.competences.length > 0) requiredComps = spec.competences;
+                else if ((spec as any).Competences && (spec as any).Competences.length > 0) requiredComps = (spec as any).Competences;
+                else if ((spec as any).Competences_obligatoires && (spec as any).Competences_obligatoires.length > 0) requiredComps = (spec as any).Competences_obligatoires;
+                else if ((spec as any).competences_obligatoires && (spec as any).competences_obligatoires.length > 0) requiredComps = (spec as any).competences_obligatoires;
+            }
         }
         else if (type === 'sous_specialisation' && identity.specialisation && identity.sous_specialisation) {
             const spec = currentMetier?.specialisations?.find(s => s.name_m === identity.specialisation || s.name_f === identity.specialisation);
             const subSpec = spec?.sous_specialisations?.find(s => s.name_m === identity.sous_specialisation || s.name_f === identity.sous_specialisation);
 
-            if (subSpec?.competences_obligatoires) requiredComps = [...subSpec.competences_obligatoires];
-            if (subSpec?.id === 'fossoyeur_armees') isFossoyeur = true;
+            if (subSpec) {
+                if (subSpec.competences_obligatoires && subSpec.competences_obligatoires.length > 0) requiredComps = [...subSpec.competences_obligatoires];
+                else if ((subSpec as any).Competences_obligatoires && (subSpec as any).Competences_obligatoires.length > 0) requiredComps = [...(subSpec as any).Competences_obligatoires];
+                else if ((subSpec as any).competences && (subSpec as any).competences.length > 0) requiredComps = [...(subSpec as any).competences];
+
+                if (subSpec.id === 'fossoyeur_armees') isFossoyeur = true;
+            }
         }
 
         // Apply same dynamic logic
@@ -261,8 +302,30 @@ export const SpecializationCompetencesPanel: React.FC<SpecializationCompetencesP
     const maxChoices = getMaxChoices();
     const canAddMore = type === 'sous_specialisation' && currentChoicesCount < maxChoices;
 
+    const activeTooltipComp = hoveredCompId ? competences.find(c => c.id === hoveredCompId) : null;
+
     return (
         <div className="mb-6 p-6 bg-parchment/30 rounded-lg shadow-sm border border-leather/20 relative">
+            {activeTooltipComp && activeTooltipComp.tableau && (
+                <Tooltip
+                    visible={!!hoveredCompId}
+                    position={mousePos}
+                    title="Tableau"
+                    requireCtrl={true}
+                    direction="auto"
+                >
+                    <div className="flex flex-col gap-1 text-sm">
+                        {Array.isArray(activeTooltipComp.tableau) ? (
+                            activeTooltipComp.tableau.map((line: string, idx: number) => (
+                                <div key={idx} className="text-tooltip-text whitespace-pre-wrap">{line}</div>
+                            ))
+                        ) : (
+                            <div className="text-tooltip-text whitespace-pre-wrap">{String(activeTooltipComp.tableau)}</div>
+                        )}
+                    </div>
+                </Tooltip>
+            )}
+
             <h3 className="text-xl font-bold text-leather-dark font-serif tracking-wide mb-4">{title}</h3>
             <div className="overflow-x-auto border border-leather rounded bg-parchment-light">
                 <table className="w-full text-left border-collapse min-w-[600px]">
@@ -278,7 +341,12 @@ export const SpecializationCompetencesPanel: React.FC<SpecializationCompetencesP
                             const forced = isMandatory(comp.nom);
                             return (
                                 <tr key={comp.id} className="even:bg-parchment hover:bg-parchment-dark transition-colors border-b border-leather/20 last:border-0">
-                                    <td className="p-3 align-top">
+                                    <td
+                                        className="p-3 align-top"
+                                        onMouseEnter={(e) => handleMouseEnter(comp.id, e)}
+                                        onMouseMove={handleMouseMove}
+                                        onMouseLeave={handleMouseLeave}
+                                    >
                                         {forced ? (
                                             <span className="font-bold text-leather-dark">{comp.nom}</span>
                                         ) : (

@@ -7,10 +7,10 @@ interface TooltipProps {
     title?: string;
     children?: React.ReactNode;
     requireCtrl?: boolean;
-    direction?: 'top' | 'bottom';
+    direction?: 'top' | 'bottom' | 'auto';
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({ visible, position, title, children, requireCtrl = true, direction = 'top' }) => {
+export const Tooltip: React.FC<TooltipProps> = ({ visible, position, title, children, requireCtrl = true, direction = 'auto' }) => {
     const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
     useEffect(() => {
@@ -33,8 +33,16 @@ export const Tooltip: React.FC<TooltipProps> = ({ visible, position, title, chil
     if (!visible) return null;
     if (requireCtrl && !isCtrlPressed) return null;
 
-    const verticalClass = direction === 'top' ? '-translate-y-full' : 'translate-y-0';
-    const topStyle = direction === 'top' ? position.y - 10 : position.y + 10;
+    // Smart Positioning Logic
+    let effectiveDirection = direction;
+    if (direction === 'auto') {
+        // If in lower 40% of screen, go top. Else go bottom (default reading direction usually down)
+        // Adjust threshold as needed. 
+        effectiveDirection = (position.y > window.innerHeight * 0.6) ? 'top' : 'bottom';
+    }
+
+    const verticalClass = effectiveDirection === 'top' ? '-translate-y-full' : 'translate-y-0';
+    const topStyle = effectiveDirection === 'top' ? position.y - 10 : position.y + 10;
 
     // Debug log
     console.log('Tooltip rendering at:', position, title);

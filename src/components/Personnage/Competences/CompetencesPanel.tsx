@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Competence, CharacterCompetence } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
+import { Tooltip } from '../../Shared/Tooltip';
 import { SearchableSelect } from '../../Shared/SearchableSelect';
 
 interface CompetencesPanelProps {
@@ -43,7 +44,6 @@ export const CompetencesPanel: React.FC<CompetencesPanelProps> = ({ title, compe
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isCtrlPressed) return;
         setMousePos({ x: e.clientX, y: e.clientY });
     };
 
@@ -74,12 +74,6 @@ export const CompetencesPanel: React.FC<CompetencesPanelProps> = ({ title, compe
 
     const handleRemoveRow = (id: string) => {
         onCompetencesChange(competences.filter(c => c.id !== id));
-    };
-
-    const handleRemoveLastRow = () => {
-        if (competences.length > 0) {
-            onCompetencesChange(competences.slice(0, -1));
-        }
     };
 
     const handleSelectChange = (id: string, competenceName: string) => {
@@ -120,37 +114,32 @@ export const CompetencesPanel: React.FC<CompetencesPanelProps> = ({ title, compe
 
 
     const activeTooltipComp = hoveredCompId ? competences.find(c => c.id === hoveredCompId) : null;
-    const showTooltip = isCtrlPressed && activeTooltipComp && activeTooltipComp.tableau;
 
     return (
         <div className="mb-6 p-6 bg-parchment/30 rounded-lg shadow-sm border border-leather/20 relative">
-            {showTooltip && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: mousePos.y + 15,
-                        left: mousePos.x + 15,
-                        zIndex: 9999,
-                        maxWidth: '400px'
-                    }}
-                    className="p-3 bg-leather text-parchment text-sm rounded shadow-lg whitespace-pre-wrap border border-parchment pointer-events-none"
+            {activeTooltipComp && activeTooltipComp.tableau && (
+                <Tooltip
+                    visible={!!hoveredCompId}
+                    position={mousePos}
+                    title="Tableau"
+                    requireCtrl={true}
+                    direction="auto"
                 >
-                    <div className="font-bold mb-1 underline">Tableau :</div>
-                    {activeTooltipComp.tableau}
-                </div>
+                    <div className="flex flex-col gap-1 text-sm">
+                        {Array.isArray(activeTooltipComp.tableau) ? (
+                            activeTooltipComp.tableau.map((line: string, idx: number) => (
+                                <div key={idx} className="text-tooltip-text whitespace-pre-wrap">{line}</div>
+                            ))
+                        ) : (
+                            <div className="text-tooltip-text whitespace-pre-wrap">{String(activeTooltipComp.tableau)}</div>
+                        )}
+                    </div>
+                </Tooltip>
             )}
 
             <div className="flex justify-between items-center mb-4 border-b border-leather/30 pb-2">
                 <h3 className="text-xl font-bold text-leather-dark font-serif tracking-wide">{title}</h3>
                 <div className="flex gap-2">
-                    <button
-                        onClick={handleRemoveLastRow}
-                        className="px-3 py-1 bg-parchment border border-leather text-leather font-serif font-bold rounded hover:bg-leather hover:text-parchment active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={competences.length === 0}
-                        title="Supprimer la dernière ligne"
-                    >
-                        -
-                    </button>
                     <button
                         onClick={handleAddRow}
                         className="px-3 py-1 bg-leather text-parchment font-serif font-bold rounded hover:bg-leather-dark active:scale-95 transition-all shadow-sm"

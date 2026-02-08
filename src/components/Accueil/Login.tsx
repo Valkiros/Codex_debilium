@@ -71,7 +71,7 @@ export default function Login({ onClose }: LoginProps) {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full p-2 rounded border border-leather/30 bg-white/50 focus:border-leather focus:outline-none"
+                        className="w-full p-2 rounded border border-leather/30 bg-input-bg text-ink focus:border-leather focus:outline-none"
                         placeholder="votre@email.com"
                         required
                     />
@@ -83,7 +83,7 @@ export default function Login({ onClose }: LoginProps) {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full p-2 rounded border border-leather/30 bg-white/50 focus:border-leather focus:outline-none"
+                        className="w-full p-2 rounded border border-leather/30 bg-input-bg text-ink focus:border-leather focus:outline-none"
                         placeholder="••••••••"
                         required
                     />

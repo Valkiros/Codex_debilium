@@ -40,12 +40,6 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
         }
     };
 
-    const handleRemoveLastRow = () => {
-        if (items.length > 0) {
-            onItemsChange(items.slice(0, -1));
-        }
-    };
-
     const handleSelectChange = (uid: string, refIdStr: string) => {
         const refId = parseInt(refIdStr);
         const refItem = referenceOptions.find(r => r.id === refId);
@@ -148,14 +142,6 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
             <div className="flex justify-between items-center mb-4 border-b border-leather/20 pb-2">
                 <h3 className="text-xl font-bold text-leather font-serif">Armes</h3>
                 <div className="flex gap-2">
-                    <button
-                        onClick={handleRemoveLastRow}
-                        className="px-3 py-1 bg-parchment border border-leather text-leather font-serif font-bold rounded hover:bg-leather hover:text-parchment active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={items.length === 0}
-                        title="Supprimer la dernière ligne"
-                    >
-                        -
-                    </button>
                     <button
                         onClick={handleAddRow}
                         className="px-3 py-1 bg-leather text-parchment font-serif font-bold rounded hover:bg-leather-dark active:scale-95 transition-all shadow-sm"
