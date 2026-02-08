@@ -6,9 +6,10 @@ import { supabase } from "../../lib/supabase";
 
 interface CharacterSelectionProps {
     onSelect: (id: string) => void;
+    isAuthenticated?: boolean;
 }
 
-export function CharacterSelection({ onSelect }: CharacterSelectionProps) {
+export function CharacterSelection({ onSelect, isAuthenticated }: CharacterSelectionProps) {
     const [historyData, setHistoryData] = useState<{ id: string, name: string, versions: { version_id: number, saved_at: string }[] } | null>(null);
     const [characters, setCharacters] = useState<CharacterSummary[]>([]);
     const [loading, setLoading] = useState(true);
@@ -34,6 +35,7 @@ export function CharacterSelection({ onSelect }: CharacterSelectionProps) {
     };
 
     const checkSync = async () => {
+        if (!isAuthenticated) return;
         try {
             const { data: cloudChars, error } = await supabase
                 .from('personnages')
@@ -228,16 +230,18 @@ export function CharacterSelection({ onSelect }: CharacterSelectionProps) {
                                     </p>
                                 </div>
                                 <div className="mt-4 flex justify-between items-center">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCloudUpload(char.id, char.name);
-                                        }}
-                                        className="text-xs font-bold text-blue-800 hover:text-blue-600 flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
-                                        title="Sauvegarder cette version sur le Cloud"
-                                    >
-                                        ☁️ Cloud
-                                    </button>
+                                    {isAuthenticated && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleCloudUpload(char.id, char.name);
+                                            }}
+                                            className="text-xs font-bold text-blue-800 hover:text-blue-600 flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+                                            title="Sauvegarder cette version sur le Cloud"
+                                        >
+                                            ☁️ Cloud
+                                        </button>
+                                    )}
                                     <span className="text-leather font-serif italic">Jouer →</span>
                                 </div>
                             </div>
@@ -246,10 +250,10 @@ export function CharacterSelection({ onSelect }: CharacterSelectionProps) {
                 </div>
             )}
 
-            {/* New Character Buttons... will be kept by replacement if I target correctly or include them */}
+            {/* New Character Buttons */}
             <div className="mt-8 border-t border-leather pt-6">
                 <h3 className="text-xl font-bold text-leather mb-4">Créer un nouveau personnage</h3>
-                <div className="flex gap-4">
+                <div className="flex gap-4 flex-wrap">
                     <button
                         onClick={async () => {
                             const name = prompt("Nom du personnage ?");
@@ -268,59 +272,46 @@ export function CharacterSelection({ onSelect }: CharacterSelectionProps) {
                     >
                         + Nouveau Personnage
                     </button>
-                    {/* ... other buttons ... */}
-                    <button
-                        onClick={async () => {
-                            try {
-                                setLoading(true);
-                                const newId = await invoke<string>("create_personnage", { name: "Nouveau Personnage" });
-                                onSelect(newId);
-                            } catch (err) {
-                                setError(String(err));
-                                setLoading(false);
-                            }
-                        }}
-                        className="px-6 py-3 bg-leather text-parchment font-bold rounded hover:bg-leather-dark transition-colors"
-                    >
-                        Rapide
-                    </button>
-                    <button
-                        onClick={async () => {
-                            try {
-                                setLoading(true);
-                                // 1. Fetch from Supabase
-                                const { data: cloudChars, error } = await supabase
-                                    .from('personnages')
-                                    .select('*');
 
-                                if (error) throw error;
+                    {isAuthenticated && (
+                        <button
+                            onClick={async () => {
+                                try {
+                                    setLoading(true);
+                                    // 1. Fetch from Supabase
+                                    const { data: cloudChars, error } = await supabase
+                                        .from('personnages')
+                                        .select('*');
 
-                                if (!cloudChars || cloudChars.length === 0) {
-                                    showToast("Aucun personnage trouvé sur le Cloud.", 'info');
-                                } else {
-                                    // 2. Import each into Local SQLite
-                                    for (const char of cloudChars) {
-                                        await invoke("import_personnage", {
-                                            id: char.id,
-                                            name: char.nom,
-                                            data: JSON.stringify(char.data),
-                                            updatedAt: char.updated_at
-                                        });
+                                    if (error) throw error;
+
+                                    if (!cloudChars || cloudChars.length === 0) {
+                                        showToast("Aucun personnage trouvé sur le Cloud.", 'info');
+                                    } else {
+                                        // 2. Import each into Local SQLite
+                                        for (const char of cloudChars) {
+                                            await invoke("import_personnage", {
+                                                id: char.id,
+                                                name: char.nom,
+                                                data: JSON.stringify(char.data),
+                                                updatedAt: char.updated_at
+                                            });
+                                        }
+                                        // 3. Refresh list
+                                        await loadCharacters();
+                                        showToast(`${cloudChars.length} personnage(s) importé(s)!`, 'success');
                                     }
-                                    // 3. Refresh list
-                                    await loadCharacters();
-                                    showToast(`${cloudChars.length} personnage(s) importé(s)!`, 'success');
+                                } catch (err: any) {
+                                    setError(String(err.message || err));
+                                } finally {
+                                    setLoading(false);
                                 }
-                            } catch (err: any) {
-                                setError(String(err.message || err));
-                            } finally {
-                                setLoading(false);
-                            }
-                        }}
-                        className="px-6 py-3 bg-blue-700 text-white font-bold rounded hover:bg-blue-800 transition-colors flex items-center gap-2"
-                    >
-                        <span>☁️</span> Importer du Cloud
-                    </button>
+                            }}
+                            className="px-6 py-3 bg-blue-700 text-white font-bold rounded hover:bg-blue-800 transition-colors flex items-center gap-2"
+                        >
+                            <span>☁️</span> Importer du Cloud
+                        </button>
+                    )}
                 </div >
             </div >
         </div >

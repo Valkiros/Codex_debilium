@@ -24,6 +24,7 @@ function AppContent() {
   const [view, setView] = useState<'selection' | 'sheet' | 'admin'>('selection');
   const [isDirty, setIsDirty] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   // Close menu when changing view
   useEffect(() => {
@@ -124,15 +125,6 @@ function AppContent() {
     });
   };
 
-  if (!session) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-parchment animate-fade-in relative">
-        <ThemeSelector />
-        <Login />
-      </div>
-    );
-  }
-
   // Render Logic based on View
   let content;
   if (view === 'admin') {
@@ -149,6 +141,7 @@ function AppContent() {
     content = (
       <CharacterSelection
         onSelect={(id) => { setSelectedCharacterId(id); }}
+        isAuthenticated={!!session}
       />
     );
   }
@@ -192,7 +185,7 @@ function AppContent() {
             <ThemeSelector />
           </div>
 
-          {userProfile?.role === 'admin' && view !== 'admin' && (
+          {session && userProfile?.role === 'admin' && view !== 'admin' && (
             <button
               onClick={handleAdminView}
               className="px-3 py-1 bg-[#cca43b] text-leather-dark font-bold rounded text-sm hover:bg-[#eebb44] cursor-pointer text-center"
@@ -219,17 +212,34 @@ function AppContent() {
             </button>
           )}
 
-          <button
-            onClick={handleLogout}
-            className="px-3 py-1 bg-parchment text-leather rounded text-sm hover:bg-white cursor-pointer"
-          >
-            Déconnexion
-          </button>
+          {session ? (
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1 bg-parchment text-leather rounded text-sm hover:bg-white cursor-pointer"
+            >
+              Déconnexion
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsLoginOpen(true)}
+              className="px-3 py-1 bg-parchment text-leather rounded text-sm hover:bg-white cursor-pointer font-bold"
+            >
+              Connexion
+            </button>
+          )}
+
         </div>
       </header>
       <main className="flex-1 overflow-auto bg-parchment-pattern">
         {content}
       </main>
+
+      {/* Login Modal */}
+      {isLoginOpen && !session && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <Login onClose={() => setIsLoginOpen(false)} />
+        </div>
+      )}
 
 
       <ConfirmModal
