@@ -75,7 +75,7 @@ export const PotionsTable: React.FC<PotionsTableProps> = ({ items, onItemsChange
                                         // @ts-ignore
                                         value={item.quantite ?? ''}
                                         onChange={(e) => handleUpdateField(item.uid, 'quantite', e.target.value === '' ? undefined : parseInt(e.target.value))}
-                                        className="w-full bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none font-bold"
+                                        className="w-full bg-input-bg text-ink border-b border-leather/20 text-center focus:border-leather outline-none font-bold"
                                         placeholder="0"
                                     />
                                 </td>

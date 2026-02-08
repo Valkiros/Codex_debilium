@@ -103,7 +103,7 @@ export const SacochesTable: React.FC<SacochesTableProps> = ({ items, onItemsChan
                                     <select
                                         value={item.etat || 'Intact'}
                                         onChange={(e) => handleUpdateField(item.uid, 'etat', e.target.value)}
-                                        className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-sm text-center"
+                                        className="w-full p-1 bg-input-bg text-ink border-b border-leather-light focus:border-leather outline-none text-sm text-center"
                                     >
                                         <option value="Intact">Intact</option>
                                         <option value="Endommagé">Endommagé</option>
@@ -117,7 +117,7 @@ export const SacochesTable: React.FC<SacochesTableProps> = ({ items, onItemsChan
                                     <select
                                         value={item.modif_rupture || 0}
                                         onChange={(e) => handleUpdateField(item.uid, 'modif_rupture', parseInt(e.target.value) || 0)}
-                                        className="w-full bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none text-sm"
+                                        className="w-full bg-input-bg text-ink border-b border-leather/20 text-center focus:border-leather outline-none text-sm"
                                     >
                                         {getMaxRuptureOptions(refItem?.rupture || getRefValue(item.refId, 'details', 'rupture')).map(opt => (
                                             <option key={opt} value={opt}>+{opt}</option>

@@ -132,7 +132,7 @@ export const APETable: React.FC<APETableProps> = ({ items, onItemsChange, origin
                                         <select
                                             value={item.niveau}
                                             onChange={(e) => handleNiveauChange(item.uid, parseInt(e.target.value))}
-                                            className="w-full bg-parchment/50 border-b border-leather/20 text-center focus:border-leather outline-none font-bold text-leather cursor-pointer appearance-none py-1 hover:bg-leather/5 rounded transition-colors"
+                                            className="w-full bg-input-bg border-b border-leather/20 text-center focus:border-leather outline-none font-bold text-ink cursor-pointer appearance-none py-1 hover:bg-leather/5 rounded transition-colors"
                                         >
                                             <option value={0}>0</option>
                                             <option value={1}>1</option>

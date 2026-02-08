@@ -228,7 +228,7 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
                                             type="text"
                                             value={item.modif_pi || ''}
                                             onChange={(e) => handleUpdateField(item.uid, 'modif_pi', parseInt(e.target.value) || 0)}
-                                            className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center"
+                                            className="w-full p-1 bg-input-bg text-ink border-b border-leather-light focus:border-leather outline-none text-center"
                                             placeholder="+0"
                                         />
                                     </td>
@@ -259,7 +259,7 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
                                         <select
                                             value={item.etat || 'Intact'}
                                             onChange={(e) => handleUpdateField(item.uid, 'etat', e.target.value)}
-                                            className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-sm"
+                                            className="w-full p-1 bg-input-bg text-ink border-b border-leather-light focus:border-leather outline-none text-sm"
                                         >
                                             <option value="Intact">Intact</option>
                                             <option value="Endommagé">Endommagé</option>
@@ -273,7 +273,7 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
                                         <select
                                             value={item.modif_rupture || 0}
                                             onChange={(e) => handleUpdateField(item.uid, 'modif_rupture', parseInt(e.target.value) || 0)}
-                                            className="w-full p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-center text-sm"
+                                            className="w-full p-1 bg-input-bg text-ink border-b border-leather-light focus:border-leather outline-none text-center text-sm"
                                         >
                                             {getMaxRuptureOptions(getRefRupture(item.refId)).map(opt => (
                                                 <option key={opt} value={opt}>+{opt}</option>

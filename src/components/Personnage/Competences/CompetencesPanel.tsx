@@ -114,20 +114,7 @@ export const CompetencesPanel: React.FC<CompetencesPanelProps> = ({ title, compe
         }
     };
 
-    const handleDescriptionChange = (id: string, description: string) => {
-        onCompetencesChange(competences.map(c => {
-            if (c.id === id) {
-                return { ...c, description };
-            }
-            return c;
-        }));
-    };
 
-    // Helper to auto-resize textarea
-    const adjustTextareaHeight = (element: HTMLTextAreaElement) => {
-        element.style.height = 'auto';
-        element.style.height = element.scrollHeight + 'px';
-    };
 
 
 
@@ -200,25 +187,8 @@ export const CompetencesPanel: React.FC<CompetencesPanelProps> = ({ title, compe
                                         placeholder="Choisir une compétence..."
                                     />
                                 </td>
-                                <td
-                                    className="p-3 align-top"
-                                    onMouseEnter={(e) => handleMouseEnter(comp.id, e)}
-                                    onMouseMove={handleMouseMove}
-                                    onMouseLeave={handleMouseLeave}
-                                >
-                                    <textarea
-                                        value={comp.description}
-                                        onChange={(e) => {
-                                            handleDescriptionChange(comp.id, e.target.value);
-                                            adjustTextareaHeight(e.target);
-                                        }}
-                                        ref={(el) => {
-                                            if (el) adjustTextareaHeight(el);
-                                        }}
-                                        className="w-full p-2 bg-transparent border-none focus:ring-0 resize-none overflow-hidden min-h-[60px]"
-                                        placeholder="Description..."
-                                        rows={1}
-                                    />
+                                <td className="p-3 align-top text-sm text-leather-dark">
+                                    {comp.description}
                                 </td>
                                 <td className="p-3 align-top text-center">
                                     <button

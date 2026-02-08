@@ -159,7 +159,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         <div className={`relative ${className}`} ref={containerRef}>
             <input
                 type="text"
-                className="w-full p-1 bg-white/50 border-b border-gray-400 focus:border-black outline-none truncate text-black"
+                className="w-full p-1 bg-input-bg border-b border-leather/30 focus:border-leather outline-none truncate text-ink"
                 value={searchTerm}
                 onChange={handleInputChange}
                 onFocus={handleFocus}
@@ -171,13 +171,13 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 <div
                     ref={dropdownRef}
                     style={getDropdownStyle()}
-                    className={`bg-white border border-gray-400 shadow-xl overflow-y-auto ${getDropdownStyle().bottom ? 'rounded-t-md border-b-0' : 'rounded-b-md border-t-0'}`}
+                    className={`bg-parchment border border-leather shadow-xl overflow-y-auto ${getDropdownStyle().bottom ? 'rounded-t-md border-b-0' : 'rounded-b-md border-t-0'}`}
                 >
                     {filteredOptions.length > 0 ? (
                         filteredOptions.map(option => (
                             <div
                                 key={option.id}
-                                className="px-3 py-2 cursor-pointer hover:bg-blue-100 text-black text-sm whitespace-nowrap border-b border-gray-100 last:border-0"
+                                className="px-3 py-2 cursor-pointer hover:bg-leather/10 text-ink text-sm whitespace-nowrap border-b border-leather/10 last:border-0"
                                 onClick={() => handleSelect(option)}
                                 title={option.label}
                             >

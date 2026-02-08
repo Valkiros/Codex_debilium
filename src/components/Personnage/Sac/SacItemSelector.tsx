@@ -67,7 +67,7 @@ export const SacItemSelector: React.FC<SacItemSelectorProps> = ({ referenceOptio
                             placeholder={`Rechercher dans ${selectedCategory}...`}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full p-1 bg-transparent border-b border-leather/30 focus:border-leather outline-none text-sm text-ink font-bold placeholder-leather/50"
+                            className="w-full p-1 bg-input-bg border-b border-leather/30 focus:border-leather outline-none text-sm text-ink font-bold placeholder-leather/50"
                         />
                     </div>
 

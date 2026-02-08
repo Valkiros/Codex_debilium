@@ -86,7 +86,7 @@ export const ObjetsMagiquesTable: React.FC<ObjetsMagiquesTableProps> = ({ items,
                                             // @ts-ignore
                                             value={item.quantite ?? ''}
                                             onChange={(e) => handleUpdateField(item.uid, 'quantite', e.target.value === '' ? undefined : parseInt(e.target.value))}
-                                            className="w-[25px] bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none font-bold text-ink"
+                                            className="w-[25px] bg-input-bg text-ink border-b border-leather/20 text-center focus:border-leather outline-none font-bold text-ink"
                                             placeholder="0"
                                         />
                                         <span className="text-ink-light">

@@ -83,7 +83,7 @@ const SacRow = React.memo(({ item, referenceOptions, onUpdateQuantity, onRemove,
                             value={localNotes}
                             onChange={(e) => setLocalNotes(e.target.value)}
                             onBlur={handleNotesBlur}
-                            className="text-xs text-ink bg-transparent border-b border-leather/20 focus:border-leather outline-none italic w-full placeholder-leather/30 font-serif"
+                            className="text-xs text-ink bg-input-bg border-b border-leather/20 focus:border-leather outline-none italic w-full placeholder-leather/30 font-serif"
                         />
                     </div>
                 )}
@@ -95,7 +95,7 @@ const SacRow = React.memo(({ item, referenceOptions, onUpdateQuantity, onRemove,
                     <select
                         value={item.etat || 'Intact'}
                         onChange={(e) => onUpdateField(item.uid, 'etat', e.target.value)}
-                        className="w-full min-w-[80px] p-1 bg-transparent border-b border-leather-light focus:border-leather outline-none text-xs text-center"
+                        className="w-full min-w-[80px] p-1 bg-input-bg text-ink border-b border-leather-light focus:border-leather outline-none text-xs text-center"
                     >
                         <option value="Intact">Intact</option>
                         <option value="Endommagé">Endommagé</option>
@@ -110,7 +110,7 @@ const SacRow = React.memo(({ item, referenceOptions, onUpdateQuantity, onRemove,
                     <select
                         value={item.modif_rupture || 0}
                         onChange={(e) => onUpdateField(item.uid, 'modif_rupture', parseInt(e.target.value) || 0)}
-                        className="w-12 bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
+                        className="w-12 bg-input-bg text-ink border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
                     >
                         {getMaxRuptureOptions(refItem?.rupture || (refItem as any)?.details?.rupture).map(opt => (
                             <option key={opt} value={opt}>+{opt}</option>
@@ -129,7 +129,7 @@ const SacRow = React.memo(({ item, referenceOptions, onUpdateQuantity, onRemove,
                             placeholder="Sol."
                             value={item.modif_pr_sol || ''}
                             onChange={(e) => onUpdateField(item.uid, 'modif_pr_sol', parseInt(e.target.value) || 0)}
-                            className="w-12 bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
+                            className="w-12 bg-input-bg text-ink border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
                         />
                         <input
                             type="number"
@@ -137,7 +137,7 @@ const SacRow = React.memo(({ item, referenceOptions, onUpdateQuantity, onRemove,
                             placeholder="Mag."
                             value={item.modif_pr_mag || ''}
                             onChange={(e) => onUpdateField(item.uid, 'modif_pr_mag', parseInt(e.target.value) || 0)}
-                            className="w-12 bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
+                            className="w-12 bg-input-bg text-ink border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
                         />
                         <input
                             type="number"
@@ -145,7 +145,7 @@ const SacRow = React.memo(({ item, referenceOptions, onUpdateQuantity, onRemove,
                             placeholder="Spé."
                             value={item.modif_pr_spe || ''}
                             onChange={(e) => onUpdateField(item.uid, 'modif_pr_spe', parseInt(e.target.value) || 0)}
-                            className="w-12 bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
+                            className="w-12 bg-input-bg text-ink border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
                         />
                     </div>
                 ) : <span className="text-gray-300">-</span>}
@@ -158,7 +158,7 @@ const SacRow = React.memo(({ item, referenceOptions, onUpdateQuantity, onRemove,
                         type="number"
                         value={item.charges || ''}
                         onChange={(e) => onUpdateField(item.uid, 'charges', parseInt(e.target.value) || 0)}
-                        className="w-12 bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
+                        className="w-12 bg-input-bg text-ink border-b border-leather/20 text-center focus:border-leather outline-none text-xs"
                         placeholder="0"
                     />
                 ) : <span className="text-gray-300">-</span>}
@@ -180,7 +180,7 @@ const SacRow = React.memo(({ item, referenceOptions, onUpdateQuantity, onRemove,
                         const val = parseInt(e.target.value);
                         onUpdateQuantity(item.uid, isNaN(val) ? 0 : val);
                     }}
-                    className="w-10 bg-transparent border-b border-leather/20 text-center focus:border-leather outline-none font-medium text-xs"
+                    className="w-10 bg-input-bg text-ink border-b border-leather/20 text-center focus:border-leather outline-none font-medium text-xs"
                 />
             </td>
 
