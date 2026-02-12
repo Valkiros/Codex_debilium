@@ -650,7 +650,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 const baseMarche = Math.ceil(speed * marcheMult / 100);
                 totals.marche.value += baseMarche;
                 totals.marche.details.components.push({
-                    label: `Base origine: ${speed / 100} * (PR Sol ${prSolide} => x${marcheMult / 100})`,
+                    label: `Base origine: ${speed / 100} * (PR Sol ${prSolide} => x${marcheMult})`,
                     value: baseMarche
                 });
 
@@ -658,7 +658,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 const baseCourse = Math.ceil(speed * courseMult / 100);
                 totals.course.value += baseCourse;
                 totals.course.details.components.push({
-                    label: `Base origine: ${speed / 100} * (PR Sol ${prSolide} => x${courseMult / 100})`,
+                    label: `Base origine: ${speed / 100} * (PR Sol ${prSolide} => x${courseMult})`,
                     value: baseCourse
                 });
 
@@ -754,51 +754,73 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     const updatedIdentity = { ...newIdentity };
                     const oldIdentity = data.identity;
 
+                    let hasSpecChanged = false;
+                    let hasSubSpecChanged = false;
+
                     if (!gameRules) {
                         // Fallback to simple logic if rules not loaded
-                        if (updatedIdentity.metier !== oldIdentity.metier &&
-                            !updatedIdentity.specialisation // Don't reset if already populated (by Header logic)
-                        ) {
+                        // Only perform resets if values actually differ (name check fallback)
+                        hasSpecChanged = updatedIdentity.specialisation !== oldIdentity.specialisation;
+                        hasSubSpecChanged = updatedIdentity.sous_specialisation !== oldIdentity.sous_specialisation;
+
+                        if (updatedIdentity.metier !== oldIdentity.metier && !updatedIdentity.specialisation) {
                             updatedIdentity.specialisation = '';
                             updatedIdentity.sous_specialisation = '';
-                        }
-                        if (updatedIdentity.specialisation !== oldIdentity.specialisation &&
-                            !updatedIdentity.sous_specialisation // Don't reset if already populated
-                        ) {
+                            hasSpecChanged = true;
+                            hasSubSpecChanged = true;
+                        } else if (hasSpecChanged && !updatedIdentity.sous_specialisation) {
                             updatedIdentity.sous_specialisation = '';
+                            hasSubSpecChanged = true;
                         }
                     } else {
-                        // Advanced logic using IDs
+                        // Advanced logic using IDs to handle Gender Swap (Name Change) gracefully
                         const getMetierId = (name: string) => gameRules.metiers.find(m => m.name_m === name || m.name_f === name)?.id;
+
                         const getSpecId = (metierName: string, specName: string) => {
+                            if (!specName) return undefined;
                             const m = gameRules.metiers.find(m => m.name_m === metierName || m.name_f === metierName);
                             return m?.specialisations?.find(s => s.name_m === specName || s.name_f === specName)?.id;
+                        };
+
+                        const getSubSpecId = (metierName: string, specName: string, subSpecName: string) => {
+                            if (!subSpecName) return undefined;
+                            const m = gameRules.metiers.find(m => m.name_m === metierName || m.name_f === metierName);
+                            const s = m?.specialisations?.find(s => s.name_m === specName || s.name_f === specName);
+                            return s?.sous_specialisations?.find(ss => ss.name_m === subSpecName || ss.name_f === subSpecName)?.id;
                         };
 
                         const oldMetierId = getMetierId(oldIdentity.metier);
                         const newMetierId = getMetierId(updatedIdentity.metier);
 
-                        // If Metier changed ID (different job), clear specs
-                        // BUT if Header already provided a valid spec (e.g. from gender swap logic), keep it!
-                        if (oldMetierId !== newMetierId && !updatedIdentity.specialisation) {
-                            updatedIdentity.specialisation = '';
-                            updatedIdentity.sous_specialisation = '';
+                        // 1. Metier Changed (different Job ID)
+                        if (oldMetierId !== newMetierId) {
+                            // If CharacterHeader didn't auto-fill a valid spec (e.g. kept old name which implies invalid), clear
+                            const isValidSpec = !!getSpecId(updatedIdentity.metier, updatedIdentity.specialisation || '');
+                            if (!isValidSpec) {
+                                updatedIdentity.specialisation = '';
+                                updatedIdentity.sous_specialisation = '';
+                            }
                         }
 
-                        // Same for Specialization -> Sub-Spec
-                        if (updatedIdentity.specialisation) {
-                            const oldSpecId = getSpecId(oldIdentity.metier, oldIdentity.specialisation || '');
-                            const newSpecId = getSpecId(updatedIdentity.metier, updatedIdentity.specialisation);
+                        // 2. Check Specialization Change by ID
+                        const oldSpecId = getSpecId(oldIdentity.metier, oldIdentity.specialisation || '');
+                        const newSpecId = getSpecId(updatedIdentity.metier, updatedIdentity.specialisation || '');
 
-                            if (oldSpecId !== newSpecId) {
-                                // Spec changed -> Reset Sub-Spec
-                                if (!updatedIdentity.sous_specialisation) {
-                                    updatedIdentity.sous_specialisation = '';
-                                }
-                            }
-                        } else {
-                            // Spec cleared
+                        // If IDs differ, it's a real change (not just gender rename)
+                        // Note: If both are undefined (empty), it's not a change
+                        hasSpecChanged = oldSpecId !== newSpecId;
+
+                        // 3. Sub-Specialization logic
+                        if (hasSpecChanged) {
+                            // Spec changed -> Reset Sub-Spec
                             updatedIdentity.sous_specialisation = '';
+                            hasSubSpecChanged = true;
+                        } else {
+                            // Spec is same (ID wise). Check Sub-Spec ID
+                            const oldSubSpecId = getSubSpecId(oldIdentity.metier, oldIdentity.specialisation || '', oldIdentity.sous_specialisation || '');
+                            const newSubSpecId = getSubSpecId(updatedIdentity.metier, updatedIdentity.specialisation || '', updatedIdentity.sous_specialisation || '');
+
+                            hasSubSpecChanged = oldSubSpecId !== newSubSpecId;
                         }
                     }
 
@@ -806,17 +828,11 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     let newCompetencesSpec = data.competences_specialisation;
                     let newCompetencesSubSpec = data.competences_sous_specialisation;
 
-                    // 1. Specialization Changed ?
-                    if (updatedIdentity.specialisation !== oldIdentity.specialisation) {
-                        // Reset Spec Comps
+                    if (hasSpecChanged) {
                         newCompetencesSpec = [];
-                        // Reset Sub-Spec identity (already handled above but enforcing consistency) & Comps
-                        updatedIdentity.sous_specialisation = '';
+                        updatedIdentity.sous_specialisation = ''; // Redundant but safe
                         newCompetencesSubSpec = [];
-                    }
-                    // 2. Sub-Specialization Changed ? (Only if spec didn't change, otherwise it's already wiped)
-                    else if (updatedIdentity.sous_specialisation !== oldIdentity.sous_specialisation) {
-                        // Reset Sub-Spec Comps
+                    } else if (hasSubSpecChanged) {
                         newCompetencesSubSpec = [];
                     }
 
