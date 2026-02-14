@@ -1,4 +1,4 @@
-import React, { useEffect, useState, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, forwardRef, useImperativeHandle, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { applyCompetenceRules } from "../../../utils/competenceRules";
@@ -8,6 +8,7 @@ import { MovementPanel } from './MovementPanel';
 import { ProtectionsPanel } from '../Equipements/ProtectionsPanel';
 import { MagicStealthPanel } from './MagicStealthPanel';
 import { CharacteristicsPanel } from './CharacteristicsPanel';
+import { AdBonusModal } from './AdBonusModal';
 import { TempModifiersPanel } from './TempModifiersPanel';
 import { Inventory } from '../Equipements/Inventory';
 import { CompetencesPanel } from '../Competences/CompetencesPanel';
@@ -114,6 +115,23 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
     }, [characterId]);
 
     const [activeTab, setActiveTab] = useState<'fiche' | 'equipement' | 'sacoches' | 'sac' | 'status' | 'competences' | 'ape' | 'richesse'>('fiche');
+    const [showAdBonusModal, setShowAdBonusModal] = useState(false);
+
+    // Check for AD > 12 Bonus Logic
+    useEffect(() => {
+        const adNaturel = data.characteristics.adresse.naturel || 0;
+        if (adNaturel > 12 && !data.general.bonus_ad_12) {
+            setShowAdBonusModal(true);
+        } else {
+            setShowAdBonusModal(false);
+        }
+    }, [data.characteristics.adresse.naturel, data.general.bonus_ad_12]);
+
+    const handleBonusChoice = (choice: 'AT' | 'PRD') => {
+        const newGeneral = { ...data.general, bonus_ad_12: choice };
+        setData({ ...data, general: newGeneral });
+        setShowAdBonusModal(false);
+    };
 
     // Computed Values for Characteristics Table
     // Computed Values for Characteristics Table
@@ -323,6 +341,17 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 'DEG': 'degats'
             };
 
+            // --- AD > 12 BONUS ---
+            if (data.general.bonus_ad_12) {
+                if (key === 'attaque' && data.general.bonus_ad_12 === 'AT') {
+                    components.push({ label: 'Base AD > 12', value: 1 });
+                }
+                if (key === 'parade' && data.general.bonus_ad_12 === 'PRD') {
+                    components.push({ label: 'Base AD > 12', value: 1 });
+                }
+            }
+            // ---------------------
+
             // Reverse map to check if current 'key' matches any spec bonus
             const specKey = Object.keys(keyMap).find(k => keyMap[k] === key);
             if (specKey && specBonuses[specKey]) {
@@ -394,6 +423,12 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             // @ts-ignore
             if (specKey && subSpecBonuses[specKey]) base += subSpecBonuses[specKey];
 
+            // Add AD > 12 Bonus to Base
+            if (data.general.bonus_ad_12) {
+                if (key === 'attaque' && data.general.bonus_ad_12 === 'AT') base += 1;
+                if (key === 'parade' && data.general.bonus_ad_12 === 'PRD') base += 1;
+            }
+
             // Add encumbrance malus (Esquive only)
             if (key === 'esquive') {
                 base += encumbranceMalus;
@@ -411,8 +446,8 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
         // Add Inventory Bonuses (excluding Weapons/Unarmed which have their own columns)
         data.inventory.forEach((item: Equipement) => {
             // Filter for Protections (Armure) and Accessoires (Autre/Sac?)
-            // Explicitly exclude weapons
-            if (item.equipement_type !== 'Armes' && item.equipement_type !== 'MainsNues') {
+            // Strictly allow only Protections and Accessoires to prevent Bag items ('Sacs') from counting
+            if (['Protections', 'Accessoires'].includes(item.equipement_type as string)) {
 
                 // Look up the Reference Item
                 const refItem = refs.find(r => r.id === item.refId);
@@ -1144,6 +1179,12 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 />,
                 document.getElementById('header-actions')!
             )}
+
+            {/* AD Bonus Modal */}
+            <AdBonusModal
+                isOpen={showAdBonusModal}
+                onChoose={handleBonusChoice}
+            />
         </div>
     );
 });
