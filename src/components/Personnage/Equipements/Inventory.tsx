@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Equipement, RefEquipement } from '../../../types';
 import { useRefContext } from '../../../context/RefContext';
 import { MainsNuesTable } from './MainsNuesTable';
