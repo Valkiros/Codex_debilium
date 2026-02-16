@@ -32,11 +32,14 @@ Ouvrez `src-tauri/tauri.conf.json` et augmentez le numéro de version.
 *Exemple : passez de `0.1.0` à `0.1.1`.*
 
 ### Étape 2 : Construire l'application
-Lancez la commande :
-```bash
-npm run tauri build
+Lancez le script de build signé :
+```powershell
+.\build_signed.ps1
 ```
-Cela va créer l'installateur (`.exe`) ET un fichier de signature (`.sig`).
+Cela va :
+1.  Construire l'application.
+2.  Signer l'installateur.
+3.  Générer automatiquement le fichier `latest.json` nécessaire pour les mises à jour.
 
 ### Étape 3 : Créer une Release sur GitHub
 1. Allez sur votre dépôt GitHub -> onglet "Releases" -> "Draft a new release".
