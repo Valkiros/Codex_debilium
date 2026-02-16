@@ -20,7 +20,8 @@ export const INITIAL_DATA: CharacterData = {
         niveau: 1,
         experience: 0,
         points_destin: 0,
-        malus_tete: 0
+        malus_tete: 0,
+        malus_2eme_at: 0
     },
     defenses: {
         naturelle: { base: 0, temp: 0 },

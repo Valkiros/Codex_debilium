@@ -21,6 +21,7 @@ interface CharacteristicsPanelProps {
     globalModifiers?: {
         pi?: number;
     };
+    malusTwo?: number;
 }
 
 const CharacteristicsPanelComponent: React.FC<CharacteristicsPanelProps> = ({
@@ -29,7 +30,8 @@ const CharacteristicsPanelComponent: React.FC<CharacteristicsPanelProps> = ({
     inventory = [],
     referenceOptions = [],
     onChange,
-    globalModifiers
+    globalModifiers,
+    malusTwo
 }) => {
     const [hoveredInfo, setHoveredInfo] = useState<{ id: string, x: number, y: number, content?: any } | null>(null);
     const [isCtrlPressed, setIsCtrlPressed] = useState(false);
@@ -196,8 +198,25 @@ const CharacteristicsPanelComponent: React.FC<CharacteristicsPanelProps> = ({
                                     }}
                                     onMouseLeave={() => setHoveredInfo(null)}
                                 >
-                                    <span className={`block w-full text-center font-bold bg-leather/10 rounded py-1 border border-leather/20 ${equippedValues[key]?.overrideDisplay ? 'text-red-600' : ''}`}>
-                                        {key === 'degats' ? '-' : (equippedValues[key]?.overrideDisplay || equippedValues[key]?.value || 0)}
+                                    <span className={`block w-full text-center font-bold bg-leather/10 rounded py-1 border border-leather/20 
+                                        ${equippedValues[key]?.overrideDisplay ? 'text-red-600' : ''}
+                                    `}>
+                                        {(() => {
+                                            if (key === 'degats') return '-';
+                                            if (equippedValues[key]?.overrideDisplay) return equippedValues[key].overrideDisplay;
+
+                                            const val = equippedValues[key]?.value || 0;
+                                            if (key === 'attaque' && malusTwo && malusTwo > 0) {
+                                                return (
+                                                    <span className="flex items-center justify-center gap-1">
+                                                        <span>{val}</span>
+                                                        <span className="text-leather-light/50">|</span>
+                                                        <span className="text-red-700">{val - malusTwo}</span>
+                                                    </span>
+                                                );
+                                            }
+                                            return val;
+                                        })()}
                                     </span>
                                 </td>
 
@@ -276,7 +295,7 @@ const CharacteristicsPanelComponent: React.FC<CharacteristicsPanelProps> = ({
 
                                         return (
                                             <td key={col.id} className="p-2">
-                                                <span className="block w-full text-center py-1 opacity-70 text-xs font-bold truncate px-1" title={tooltipText}>
+                                                <span className="block w-full text-center py-1 text-xs font-bold truncate px-1 opacity-100" title={tooltipText}>
                                                     {display || '-'}
                                                 </span>
                                             </td>
@@ -312,8 +331,21 @@ const CharacteristicsPanelComponent: React.FC<CharacteristicsPanelProps> = ({
 
                                     return (
                                         <td key={col.id} className="p-2">
-                                            <span className="block w-full text-center py-1 opacity-70">
-                                                {total || '-'}
+                                            <span className={`block w-full text-center py-1 opacity-70 
+                                                ${key === 'attaque' ? 'font-bold opacity-100' : ''}
+                                            `}>
+                                                {(() => {
+                                                    if (key === 'attaque' && malusTwo && malusTwo > 0) {
+                                                        return (
+                                                            <span className="flex items-center justify-center gap-1">
+                                                                <span>{total}</span>
+                                                                <span className="text-leather-light/50 font-normal">|</span>
+                                                                <span className="text-red-700 font-bold">{total - malusTwo}</span>
+                                                            </span>
+                                                        );
+                                                    }
+                                                    return total || '-';
+                                                })()}
                                             </span>
                                         </td>
                                     );

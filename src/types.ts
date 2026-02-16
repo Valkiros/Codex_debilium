@@ -160,6 +160,7 @@ export interface GeneralStats {
     experience: number;
     points_destin: number;
     malus_tete: number;
+    malus_2eme_at?: number;
     bonus_ad_12?: 'AT' | 'PRD' | null;
 }
 

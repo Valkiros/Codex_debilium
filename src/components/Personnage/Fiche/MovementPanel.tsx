@@ -14,12 +14,14 @@ interface MovementPanelProps {
     };
     computedDiscretion?: { value: number, details: StatDetail };
     malusTete: number;
+    malus2emeAt?: number;
     onMovementChange: (movement: Movement) => void;
     onMagicChange: (magic: MagicStealth) => void;
     onMalusTeteChange: (value: number) => void;
+    onMalus2emeAtChange: (value: number) => void;
 }
 
-const MovementPanelComponent: React.FC<MovementPanelProps> = ({ movement, magic, computedMovement, computedDiscretion, malusTete, onMovementChange, onMagicChange, onMalusTeteChange }) => {
+const MovementPanelComponent: React.FC<MovementPanelProps> = ({ movement, magic, computedMovement, computedDiscretion, malusTete, malus2emeAt, onMovementChange, onMagicChange, onMalusTeteChange, onMalus2emeAtChange }) => {
     const [hoveredInfo, setHoveredInfo] = useState<{ details: StatDetail, x: number, y: number } | null>(null);
 
     const handleMovementChange = (category: keyof Movement, field: keyof ProtectionValue, value: string | number) => {
@@ -170,6 +172,15 @@ const MovementPanelComponent: React.FC<MovementPanelProps> = ({ movement, magic,
                     type="number"
                     value={malusTete || 0}
                     onCommit={(val) => onMalusTeteChange(Number(val))}
+                    className="w-16 bg-input-bg border border-red-500/50 rounded text-center font-bold text-red-600 outline-none"
+                />
+            </div>
+            <div className="mt-2 flex items-center justify-between text-red-600">
+                <label className="text-xs font-bold uppercase text-red-600/90">Malus 2ème AT</label>
+                <SmartInput
+                    type="number"
+                    value={malus2emeAt || 0}
+                    onCommit={(val) => onMalus2emeAtChange(Number(val))}
                     className="w-16 bg-input-bg border border-red-500/50 rounded text-center font-bold text-red-600 outline-none"
                 />
             </div>

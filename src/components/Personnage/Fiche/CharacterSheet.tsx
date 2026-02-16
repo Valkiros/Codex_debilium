@@ -831,6 +831,11 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
         if (!isInitialLoad.current) onDirtyChange?.(true);
     }, [onDirtyChange]);
 
+    const handleMalus2emeAtChange = useCallback((val: number) => {
+        setDataState(prev => ({ ...prev, general: { ...prev.general, malus_2eme_at: val } }));
+        if (!isInitialLoad.current) onDirtyChange?.(true);
+    }, [onDirtyChange]);
+
     const handleDefenseChange = useCallback((defenses: any) => {
         setDataState(prev => ({ ...prev, defenses }));
         if (!isInitialLoad.current) onDirtyChange?.(true);
@@ -1041,6 +1046,8 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                             onMovementChange={handleMovementChange}
                             onMagicChange={handleMagicChange}
                             onMalusTeteChange={handleMalusTeteChange}
+                            malus2emeAt={data.general.malus_2eme_at}
+                            onMalus2emeAtChange={handleMalus2emeAtChange}
                         />
                     </div>
                     <div className="flex flex-col gap-6">
@@ -1065,6 +1072,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                         referenceOptions={refs}
                         onChange={handleCharacteristicsChange}
                         globalModifiers={globalModifiers}
+                        malusTwo={data.general.malus_2eme_at}
                     />
                 </div>
 
