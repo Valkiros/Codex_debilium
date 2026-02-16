@@ -8,7 +8,7 @@ use tauri::AppHandle; // Import AppHandle to access app-specific paths if needed
 struct SourceItem {
     id: String, // Add ID field
     nom: String,
-    poids: String, // Parsing needed
+    poids: Option<String>, // Parsing needed
     esquive: Option<String>,
     degats: Option<String>,
     pi: Option<String>,
@@ -118,7 +118,7 @@ pub fn seed_reference_data(conn: &mut Connection, _app_handle: AppHandle) -> Res
 
             // Details (poids, aura, effet/description, rupture, esquive)
             let details = serde_json::json!({
-                "poids": item.poids,
+                "poids": item.poids.unwrap_or("0".to_string()),
                 "aura": item.aura.unwrap_or_default(),
                 "effet": item.effet.unwrap_or_default(),
                 "type": item.item_type.unwrap_or_default(),

@@ -35,4 +35,16 @@ backups/
 *.zip
 
 # Database
-game_data_v2.db
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Security - KEYS & SECRETS
+tauri.key
+build_signed.ps1
+src-tauri/tauri.conf.json.pub
+
+# Logs and Temporary files
+src-tauri/error*.log
+src-tauri/*.txt

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Codex debilium",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "identifier": "com.valkiros.codex-debilium",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "JDR App",
+        "title": "Codex debilium",
         "width": 1200,
         "height": 800
       }
@@ -26,11 +26,12 @@
       "endpoints": [
         "https://github.com/Valkiros/Codex_debilium/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlGMzc5NzRBMDAzRDI3QUYKUldTdkp6MEFTcGMzbjdsSDdocHF1ZGd5aGs4UGUwaDd2eVREYmJlUi9NOG1zMjJzUXluVWxKUjkK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDA3RkNFMjBEQUU5RTAzNDkKUldSSkE1NnVEZUw4QitaTU8xbWl1c1krTVR3dURvVjUzY25HMDFSWHBmSG0xM3BoclppN1VBQjkK"
     }
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "icon": [
       "icons/32x32.png",

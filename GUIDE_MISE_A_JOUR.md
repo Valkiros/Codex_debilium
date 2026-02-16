@@ -12,7 +12,9 @@ Ouvrez votre terminal (PowerShell ou Cmd) dans le dossier du projet `d:\Applicat
 ### Étape 2 : Lancer la commande de génération
 Tapez la commande suivante :
 ```bash
-npm run tauri signer generate -w src-tauri/tauri.conf.json
+npm run tauri signer generate -- -w src-tauri/tauri.conf.json --force
+```
+*(Ou avec npx : `npx tauri signer generate -w src-tauri/tauri.conf.json --force`)*
 ```
 *(Si cela ne fonctionne pas, essayez `npx tauri signer generate -w src-tauri/tauri.conf.json`)*
 

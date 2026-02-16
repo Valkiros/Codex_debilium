@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { RefEquipement } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { ConfirmModal } from '../Shared/ConfirmModal';
-import { CATEGORY_SCHEMAS } from '../../utils/adminSchemas';
+import { CATEGORY_SCHEMAS } from '../../utils/AdminSchemas';
 import { TableColumnFilter } from '../Shared/TableColumnFilter';
 import { ThemeSelector } from '../Shared/ThemeSelector';
 

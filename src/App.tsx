@@ -18,7 +18,12 @@ import { ThemeSelector } from "./components/Shared/ThemeSelector";
 import { ErrorBoundary } from "./components/Shared/ErrorBoundary";
 import { DatabaseUpdate } from "./components/Shared/DatabaseUpdate";
 
-// ... existing imports
+import { check, Update } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { UpdateModal, UpdateStatus } from "./components/Shared/UpdateModal";
+
+// ... (dans AppContent, après les autres useEffect)
+
 
 function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
@@ -28,6 +33,60 @@ function AppContent() {
   const [isDirty, setIsDirty] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+  /* -------------------------------------------------------------
+   *  Données de mise à jour (Modal personnalisée)
+   * ------------------------------------------------------------- */
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle');
+  const [updateInfo, setUpdateInfo] = useState<Update | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
+  const checkForUpdates = async (manual = false) => {
+    if (manual) {
+      setUpdateStatus('checking');
+    }
+
+    try {
+      const update = await check();
+
+      if (update && update.available) {
+        setUpdateInfo(update);
+        setUpdateStatus('available');
+      } else if (manual) {
+        setUpdateStatus('uptodate');
+      }
+    } catch (error: any) {
+      console.error("Failed to check for updates:", error);
+      // On ne montre l'erreur que si c'est une demande manuelle
+      if (manual) {
+        setUpdateError(String(error));
+        setUpdateStatus('error');
+      }
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    if (!updateInfo) return;
+    try {
+      setUpdateStatus('downloading');
+      await updateInfo.downloadAndInstall();
+      await relaunch();
+    } catch (e) {
+      console.error("Install failed", e);
+      setUpdateError("Échec de l'installation : " + String(e));
+      setUpdateStatus('error');
+    }
+  };
+
+  const closeUpdateModal = () => {
+    setUpdateStatus('idle');
+    setUpdateError(null);
+  };
+
+
+  useEffect(() => {
+    checkForUpdates(false); // Auto-check on startup
+  }, []);
 
   // Close menu when changing view
   useEffect(() => {
@@ -154,7 +213,7 @@ function AppContent() {
     <div className="flex flex-col h-screen w-screen bg-parchment text-leather font-sans overflow-hidden overscroll-none relative">
       <header className="p-4 bg-leather text-parchment shadow-md flex justify-between items-center sticky top-0 z-40">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">JDR Manager</h1>
+          <h1 className="text-xl font-bold">Codex debilium</h1>
           {userProfile && (
             <span className="px-2 py-1 bg-parchment text-leather text-xs font-bold rounded uppercase border border-leather/50">
               {userProfile.role}
@@ -232,6 +291,17 @@ function AppContent() {
             </button>
           )}
 
+          {/* Update Button */}
+          <button
+            onClick={() => checkForUpdates(true)}
+            className="px-3 py-1 bg-leather-light text-parchment rounded text-sm hover:bg-leather-lighter cursor-pointer border border-parchment/20"
+            title="Vérifier les mises à jour"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+          </button>
+
         </div>
       </header>
       <main className="flex-1 overflow-auto bg-parchment-pattern">
@@ -264,6 +334,14 @@ function AppContent() {
         onCancel={() => setShowConfirm(false)}
         confirmLabel="Quitter sans sauvegarder"
         saveLabel="Sauvegarder et Quitter"
+      />
+
+      <UpdateModal
+        status={updateStatus}
+        updateInfo={updateInfo}
+        errorMsg={updateError}
+        onClose={closeUpdateModal}
+        onInstall={handleInstallUpdate}
       />
 
       <DatabaseUpdate />
