@@ -92,6 +92,77 @@
   --input-bg: rgba(255, 255, 255, 0.4);
 }
 
+/* Void Theme (Néant) */
+[data-theme='neant'] {
+  --parchment: #0a0510;
+  /* Noir violet très profond */
+  --leather: #8a2be2;
+  /* BlueViolet (Accents principaux) */
+  --leather-light: #9d4edd;
+  /* Violet clair néon */
+  --leather-dark: #4b0082;
+  /* Indigo foncé */
+  --ink: #e0d0f0;
+  /* Blanc cassé violet (Texte principal) */
+  --ink-light: #a090b0;
+  /* Gris violet (Texte secondaire) */
+
+  /* Tooltip Colors - Néant */
+  --tooltip-bg: #150a20;
+  --tooltip-border: #8a2be2;
+  --tooltip-text: #e0d0f0;
+  --tooltip-title: #9d4edd;
+  --tooltip-label: #a090b0;
+
+  /* Input Backgrounds */
+  --input-bg: rgba(138, 43, 226, 0.1);
+  /* Violet très transparent */
+}
+
+/* Dream Theme (Onirique) */
+[data-theme='onirique'] {
+  --parchment: #ecd9f5;
+  /* Light violet/pink */
+  --paper: #e4c4ed;
+  /* Slightly darker pink/violet */
+  --border: #9d4edd;
+
+  --ink: #2e1a36;
+  /* Dark violet for readability on light bg */
+  --ink-light: #5c3a6b;
+  /* Muted violet */
+
+  --leather: #9d4edd;
+  /* Keep the bright violet accent */
+  --leather-dark: #7b2cbf;
+  /* Darker accent */
+  --leather-light: #c77dff;
+  /* Light accent */
+
+  /* Tooltip Colors - Onirique */
+  --tooltip-bg: #fdf5ff;
+  --tooltip-border: #9d4edd;
+  --tooltip-text: #2e1a36;
+  --tooltip-title: #7b2cbf;
+  --tooltip-label: #5c3a6b;
+
+  /* Input Backgrounds */
+  --input-bg: rgba(157, 78, 221, 0.1);
+}
+
+/* Specific glows - removed per request */
+/* No special glow */
+
+/* Force MAX readability for table values (inputs and spans) in Void/Dream themes */
+[data-theme='neant'] table input,
+[data-theme='neant'] table span,
+[data-theme='onirique'] table input,
+[data-theme='onirique'] table span {
+  opacity: 1 !important;
+  font-weight: 700 !important;
+  /* Gras forcé */
+}
+
 body {
   overscroll-behavior: none;
   margin: 0;

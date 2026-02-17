@@ -260,7 +260,7 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
                     )}
 
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-leather-light">Nom</label>
+                        <label className="text-xs font-bold uppercase text-leather">Nom</label>
                         <SmartInput
                             value={identity.nom}
                             onCommit={(val) => handleIdentityChange('nom', String(val))}
@@ -269,7 +269,7 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
                         />
                     </div>
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-leather-light">Sexe</label>
+                        <label className="text-xs font-bold uppercase text-leather">Sexe</label>
                         <select
                             value={identity.sexe}
                             onChange={(e) => handleIdentityChange('sexe', e.target.value)}
@@ -281,7 +281,7 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
                         </select>
                     </div>
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-leather-light">Origine</label>
+                        <label className="text-xs font-bold uppercase text-leather">Origine</label>
                         <select
                             value={identity.origine}
                             onChange={(e) => handleIdentityChange('origine', e.target.value)}
@@ -292,7 +292,7 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
                         </select>
                     </div>
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-leather-light">Métier</label>
+                        <label className="text-xs font-bold uppercase text-leather">Métier</label>
                         <select
                             value={identity.metier}
                             onChange={(e) => handleIdentityChange('metier', e.target.value)}
@@ -305,7 +305,7 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
 
                     {/* Specialisation Selector */}
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-leather-light flex items-center justify-between">
+                        <label className="text-xs font-bold uppercase text-leather flex items-center justify-between">
                             Spécialisation
                             <span className="text-[10px] text-gray-500">(Niv 5+)</span>
                         </label>
@@ -370,7 +370,7 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
 
                     {/* Sous-Specialisation Selector */}
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-leather-light flex items-center justify-between">
+                        <label className="text-xs font-bold uppercase text-leather flex items-center justify-between">
                             Sous-Spécialisation
                             <span className="text-[10px] text-gray-500">(Niv 10+)</span>
                         </label>
@@ -436,13 +436,13 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
 
                     {/* General Stats Integrated */}
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-leather-light">Niveau</label>
+                        <label className="text-xs font-bold uppercase text-leather">Niveau</label>
                         <div className="w-full bg-transparent border-b border-leather py-1 font-serif text-lg text-leather-dark font-bold">
                             {generalStats.niveau}
                         </div>
                     </div>
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-leather-light">Expérience</label>
+                        <label className="text-xs font-bold uppercase text-leather">Expérience</label>
                         <SmartInput
                             type="number"
                             value={generalStats.experience || 0}
@@ -451,7 +451,7 @@ export const CharacterHeader: React.FC<CharacterHeaderProps> = ({
                         />
                     </div>
                     <div className="flex flex-col">
-                        <label className="text-xs font-bold uppercase text-leather-light">Points de Destin</label>
+                        <label className="text-xs font-bold uppercase text-leather">Points de Destin</label>
                         <SmartInput
                             type="number"
                             value={generalStats.points_destin || 0}

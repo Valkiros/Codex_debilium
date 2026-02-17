@@ -24,6 +24,7 @@ import { INITIAL_DATA } from '../../../constants';
 import { useRefContext } from '../../../context/RefContext';
 import { getAlcoholModifiers } from '../../../utils/alcohol';
 import { getItemWeight } from '../../../utils/sacUtils';
+import { GiScrollQuill, GiChestArmor, GiBelt, GiBackpack, GiHeartBeats, GiOpenBook, GiDna1, GiCoins } from 'react-icons/gi';
 
 
 export interface CharacterSheetHandle {
@@ -980,51 +981,59 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             <div className="flex border-b-2 border-leather mb-6 overflow-x-auto whitespace-nowrap hide-scrollbar">
                 <button
                     onClick={() => setActiveTab('fiche')}
+                    title="Fiche"
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'fiche' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
                 >
-                    Fiche
+                    <GiScrollQuill className="w-8 h-8" />
                 </button>
                 <button
                     onClick={() => setActiveTab('equipement')}
+                    title="Equipements"
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'equipement' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
                 >
-                    Equipements
+                    <GiChestArmor className="w-8 h-8" />
                 </button>
                 <button
                     onClick={() => setActiveTab('sacoches')}
+                    title="Sacoches & Poches"
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'sacoches' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
                 >
-                    Sacoches & Poches
+                    <GiBelt className="w-8 h-8" />
                 </button>
                 <button
                     onClick={() => setActiveTab('sac')}
+                    title="Sac"
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'sac' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
                 >
-                    Sac
+                    <GiBackpack className="w-8 h-8" />
                 </button>
                 <button
                     onClick={() => setActiveTab('status')}
+                    title="État"
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'status' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
                 >
-                    État
+                    <GiHeartBeats className="w-8 h-8" />
                 </button>
                 <button
                     onClick={() => setActiveTab('competences')}
+                    title="Compétences"
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'competences' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
                 >
-                    Compétences
+                    <GiOpenBook className="w-8 h-8" />
                 </button>
                 <button
                     onClick={() => setActiveTab('ape')}
+                    title="APE"
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'ape' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
                 >
-                    APE
+                    <GiDna1 className="w-8 h-8" />
                 </button>
                 <button
                     onClick={() => setActiveTab('richesse')}
+                    title="Richesse"
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'richesse' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
                 >
-                    Richesse
+                    <GiCoins className="w-8 h-8" />
                 </button>
             </div>
 

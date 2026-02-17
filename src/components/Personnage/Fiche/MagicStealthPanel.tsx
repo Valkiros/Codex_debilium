@@ -50,7 +50,7 @@ const MagicStealthPanelComponent: React.FC<MagicStealthPanelProps> = ({ stats, c
 
         return (
             <div className="flex items-center gap-1 mb-2">
-                <label className="flex-1 text-sm font-bold text-leather leading-tight mr-1">{label}</label>
+                <label className="flex-1 text-sm font-bold text-leather-dark leading-tight mr-1">{label}</label>
                 <div className="flex flex-col items-center relative">
                     <span className="text-[10px] uppercase opacity-60">Base</span>
                     <div
