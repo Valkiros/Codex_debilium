@@ -234,15 +234,16 @@ export function CharacterSelection({ onSelect, isAuthenticated }: CharacterSelec
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                console.log("Tentative d'upload cloud pour:", char.id);
                                                 handleCloudUpload(char.id, char.name);
                                             }}
-                                            className="text-xs font-bold text-blue-800 hover:text-blue-600 flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+                                            className="text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1 px-3 py-1 rounded shadow-sm transition-colors opacity-90 hover:opacity-100"
                                             title="Sauvegarder cette version sur le Cloud"
                                         >
-                                            ☁️ Cloud
+                                            ☁️ Cloud (Upload)
                                         </button>
                                     )}
-                                    <span className="text-leather font-serif italic">Jouer →</span>
+                                    <span className="text-leather font-serif italic ml-auto">Jouer →</span>
                                 </div>
                             </div>
                         </div>
