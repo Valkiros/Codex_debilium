@@ -35,6 +35,10 @@ Ouvrez `src-tauri/tauri.conf.json` et augmentez le numéro de version.
 Lancez le script de build signé :
 ```powershell
 .\build_signed.ps1
+
+ou
+
+powershell -ExecutionPolicy Bypass -File .\build_signed.ps1
 ```
 Cela va :
 1.  Construire l'application.
