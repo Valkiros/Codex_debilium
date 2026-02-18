@@ -41,22 +41,16 @@ export const DatabaseUpdate: React.FC<DatabaseUpdateProps> = ({ onUpdateComplete
             if (localCount === 0) {
                 setStatus('empty'); // Force Update
                 handleUpdate(); // Auto-start for empty DB
-            } else if (localV !== remoteV) {
-                // Special check: If remote returns "COUNT:X", we compare with local count?
-                // For now, if string differs, we propose update.
-                // Verify if remote is just a count diff or real version
-                if (remoteV.startsWith('COUNT:')) {
-                    const remoteCount = parseInt(remoteV.split(':')[1]);
-                    if (remoteCount !== localCount) {
-                        setStatus('outdated');
-                    } else {
-                        setStatus('up-to-date');
-                    }
-                } else {
-                    setStatus('outdated');
-                }
             } else {
-                setStatus('up-to-date');
+                // Version comparison logic
+                const local = parseInt(localV) || 0;
+                const remote = parseInt(remoteV) || 0;
+
+                if (remote > local) {
+                    setStatus('outdated');
+                } else {
+                    setStatus('up-to-date');
+                }
             }
 
         } catch (err) {

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRefContext } from '../../context/RefContext';
 import { invoke } from '@tauri-apps/api/core';
 import { RefEquipement } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { ConfirmModal } from '../Shared/ConfirmModal';
-import { CATEGORY_SCHEMAS } from '../../utils/AdminSchemas';
+import { PublishModal } from '../Shared/PublishModal';
+import { CATEGORY_SCHEMAS, FieldDef } from '../../utils/AdminSchemas';
 import { TableColumnFilter } from '../Shared/TableColumnFilter';
 import { ThemeSelector } from '../Shared/ThemeSelector';
 
@@ -12,6 +14,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
+    const { reloadRefs } = useRefContext();
     const [items, setItems] = useState<RefEquipement[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +22,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Partial<RefEquipement> | null>(null);
     const [syncing, setSyncing] = useState(false);
+
+    // Publish State
+    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+    const [localVersion, setLocalVersion] = useState("0");
+
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -40,6 +48,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         onConfirm: () => { },
     });
 
+    useEffect(() => {
+        fetchItems();
+        fetchLocalVersion();
+    }, []);
+
+    const fetchLocalVersion = async () => {
+        try {
+            const v = await invoke<string>('get_local_db_version');
+            setLocalVersion(v);
+        } catch (e) {
+            console.error("Failed to get local version", e);
+        }
+    };
+
     const closeConfirm = () => setConfirmState(prev => ({ ...prev, isOpen: false }));
 
     const handleSync = () => {
@@ -50,6 +72,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             confirmLabel: "Synchroniser",
             onConfirm: performSync
         });
+    };
+
+    const handlePublish = () => {
+        setIsPublishModalOpen(true);
+    };
+
+    const performPublish = async (version: string) => {
+        setIsPublishModalOpen(false);
+        setSyncing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Erreur : Vous devez être connecté pour publier.");
+                return;
+            }
+
+            const token = session.access_token;
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+            const result = await invoke('publish_ref_items', {
+                token,
+                version,
+                supabaseUrl,
+                supabaseKey
+            });
+
+            alert(result);
+            fetchLocalVersion(); // Update displayed version
+        } catch (error) {
+            console.error("Publish failed:", error);
+            alert("Erreur lors de la publication : " + error);
+        } finally {
+            setSyncing(false);
+        }
     };
 
     const performSync = async () => {
@@ -194,6 +251,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         closeConfirm();
         try {
             await invoke('delete_ref_equipement', { id });
+            await reloadRefs();
             fetchItems();
         } catch (error) {
             console.error("Delete failed:", error);
@@ -275,12 +333,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
 
         const payload = {
             category: editingItem.category,
-            ref_id: editingItem.ref_id,
+            refId: editingItem.ref_id,
             nom: editingItem.nom,
             degats,
             caracteristiques,
             protections,
-            prix_info,
+            prixInfo: prix_info,
             craft,
             details
         };
@@ -294,6 +352,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             } else {
                 await invoke('create_ref_equipement', payload);
             }
+            await reloadRefs();
             setIsModalOpen(false);
             setEditingItem(null);
             fetchItems();
@@ -303,17 +362,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         }
     };
 
+    const getNextRefId = (category: string) => {
+        const categoryItems = items.filter(i => i.category === category);
+        if (categoryItems.length === 0) return 1;
+        const maxId = Math.max(...categoryItems.map(i => i.ref_id || 0));
+        return maxId + 1;
+    };
+
+    const handleDuplicate = (item: RefEquipement) => {
+        // Create a copy without ID and with updated name/ref_id
+        const newItem = {
+            ...item,
+            id: undefined as any, // Ensure it's treated as new
+            nom: `${item.nom} (Copie)`,
+            ref_id: getNextRefId(item.category)
+        };
+        setEditingItem(newItem);
+        setIsModalOpen(true);
+    };
+
     const openEdit = (item: RefEquipement) => {
         setEditingItem({ ...item });
         setIsModalOpen(true);
     };
 
     const openNew = () => {
+        const category = selectedCategory === 'all' ? 'Armes' : selectedCategory;
         setEditingItem({
-            category: selectedCategory,
+            category: category,
             nom: '',
             poids: 0,
             pi: 0,
+            ref_id: getNextRefId(category)
         });
         setIsModalOpen(true);
     };
@@ -423,6 +503,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
 
             <div className="flex justify-between items-center mb-4 gap-4 flex-shrink-0">
                 <div className="flex gap-2 items-center flex-1">
+                    <button
+                        onClick={handlePublish}
+                        disabled={syncing}
+                        className={`text-sm px-3 py-2 bg-purple-700 text-white rounded shadow hover:bg-purple-800 ${syncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title="Envoyer les données locales vers le Cloud et mettre à jour la version"
+                    >
+                        {syncing ? 'Publication...' : 'Publier (Cloud)'}
+                    </button>
+                    <div className="w-px h-8 bg-leather/20 mx-2"></div>
                     <input
                         type="text"
                         placeholder="Recherche globale..."
@@ -505,6 +594,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                         </td>
                                     ))}
                                     <td className="p-2 text-right whitespace-nowrap sticky right-0 bg-parchment z-20 border-l border-leather/10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+                                        <button onClick={() => handleDuplicate(item)} className="text-green-600 hover:text-green-800 mr-2 p-1 hover:bg-white/50 rounded" title="Dupliquer">📄</button>
                                         <button onClick={() => openEdit(item)} className="text-blue-600 hover:text-blue-800 mr-2 p-1 hover:bg-white/50 rounded" title="Modifier">✏️</button>
                                         <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 p-1 hover:bg-white/50 rounded" title="Supprimer">🗑️</button>
                                     </td>
@@ -564,74 +654,88 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             {
                 isModalOpen && editingItem && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-parchment p-6 rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border-2 border-leather flex flex-col">
-                            <h3 className="text-xl font-bold mb-4 border-b border-leather/20 pb-2 flex-shrink-0">
-                                {editingItem.id ? 'Éditer' : 'Créer'} : {editingItem.category}
-                            </h3>
-                            <form onSubmit={handleSave} className="space-y-4 flex-1">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase opacity-70 mb-1">Catégorie</label>
-                                        <select
-                                            className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather focus:border-leather outline-none"
-                                            value={editingItem.category}
-                                            onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
-                                            disabled={!!editingItem.id}
-                                        >
-                                            {uniqueCategories.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase opacity-70 mb-1">Nom</label>
-                                        <input
-                                            className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather focus:border-leather outline-none"
-                                            value={editingItem.nom}
-                                            onChange={(e) => setEditingItem({ ...editingItem, nom: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-                                </div>
+                        <div className="bg-parchment rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] border-2 border-leather flex flex-col overflow-hidden">
+                            <div className="p-6 border-b border-leather/20 flex-shrink-0 bg-parchment">
+                                <h3 className="text-xl font-bold">
+                                    {editingItem.id ? 'Éditer' : 'Créer'} : {editingItem.category}
+                                </h3>
+                            </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-leather/5 rounded border border-leather/10">
-                                    {currentSchema.map(field => (
-                                        <div key={String(field.key)} className={field.type === 'textarea' ? 'col-span-full' : ''}>
-                                            <label className="block text-[10px] font-bold uppercase opacity-70 mb-1">{field.label}</label>
-                                            {field.type === 'textarea' ? (
-                                                <textarea
-                                                    className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather min-h-[60px] text-sm focus:border-leather outline-none"
-                                                    value={(editingItem as any)[field.key] || ''}
-                                                    onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
-                                                />
-                                            ) : field.type === 'select' && field.options ? (
-                                                <select
-                                                    className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather text-sm focus:border-leather outline-none"
-                                                    value={(editingItem as any)[field.key] || ''}
-                                                    onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
-                                                >
-                                                    <option value="">-</option>
-                                                    {field.options.map(opt => (
-                                                        <option key={opt} value={opt}>{opt}</option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <input
-                                                    type={field.type === 'number' ? 'number' : 'text'}
-                                                    step={field.type === 'number' ? "0.01" : undefined}
-                                                    className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather text-sm focus:border-leather outline-none"
-                                                    value={(editingItem as any)[field.key] || ''}
-                                                    onChange={(e) => {
-                                                        const val = field.type === 'number' ? parseFloat(e.target.value) : e.target.value;
-                                                        setEditingItem({ ...editingItem, [field.key as string]: val });
-                                                    }}
-                                                />
-                                            )}
+                            <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
+                                <div className="p-6 pb-2 flex-shrink-0 bg-parchment">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase opacity-70 mb-1">Catégorie</label>
+                                            <select
+                                                className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather focus:border-leather outline-none"
+                                                value={editingItem.category}
+                                                onChange={(e) => {
+                                                    const newCategory = e.target.value;
+                                                    // When changing category, reset fields specific to old schema? 
+                                                    // Ideally yes, but keeping data is safer. 
+                                                    // We must update the RefId though? The user didn't ask, but it makes sense.
+                                                    // We will just update the category for now as requested.
+                                                    setEditingItem({ ...editingItem, category: newCategory });
+                                                }}
+                                                disabled={!!editingItem.id}
+                                            >
+                                                {Array.from(new Set([...uniqueCategories, ...Object.keys(CATEGORY_SCHEMAS)])).sort().map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
                                         </div>
-                                    ))}
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase opacity-70 mb-1">Nom</label>
+                                            <input
+                                                className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather focus:border-leather outline-none"
+                                                value={editingItem.nom}
+                                                onChange={(e) => setEditingItem({ ...editingItem, nom: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="flex justify-end gap-2 pt-4 border-t border-leather/20">
+                                <div className="flex-1 overflow-y-auto p-6 pt-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-leather/5 rounded border border-leather/10">
+                                        {(CATEGORY_SCHEMAS[editingItem.category || 'Default'] || CATEGORY_SCHEMAS['Default']).map((field: FieldDef) => (
+                                            <div key={String(field.key)} className={field.type === 'textarea' ? 'col-span-full' : ''}>
+                                                <label className="block text-[10px] font-bold uppercase opacity-70 mb-1">{field.label}</label>
+                                                {field.type === 'textarea' ? (
+                                                    <textarea
+                                                        className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather min-h-[60px] text-sm focus:border-leather outline-none"
+                                                        value={(editingItem as any)[field.key] || ''}
+                                                        onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
+                                                    />
+                                                ) : field.type === 'select' && field.options ? (
+                                                    <select
+                                                        className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather text-sm focus:border-leather outline-none"
+                                                        value={(editingItem as any)[field.key] || ''}
+                                                        onChange={(e) => setEditingItem({ ...editingItem, [field.key as string]: e.target.value })}
+                                                    >
+                                                        <option value="">-</option>
+                                                        {field.options.map((opt: string) => (
+                                                            <option key={opt} value={opt}>{opt}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type={field.type === 'number' ? 'number' : 'text'}
+                                                        step={field.type === 'number' ? "0.01" : undefined}
+                                                        className="w-full p-2 border border-leather/30 rounded bg-input-bg text-leather text-sm focus:border-leather outline-none"
+                                                        value={(editingItem as any)[field.key] || ''}
+                                                        onChange={(e) => {
+                                                            const val = field.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+                                                            setEditingItem({ ...editingItem, [field.key as string]: val });
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-2 p-6 pt-4 border-t border-leather/20 bg-parchment flex-shrink-0">
                                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-leather opacity-70 hover:opacity-100">Annuler</button>
                                     <button type="submit" className="px-4 py-2 bg-leather text-parchment font-bold rounded shadow hover:bg-leather-dark">Sauvegarder</button>
                                 </div>
@@ -648,6 +752,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 onConfirm={confirmState.onConfirm}
                 onCancel={closeConfirm}
                 confirmLabel={confirmState.confirmLabel}
+            />
+
+            <PublishModal
+                isOpen={isPublishModalOpen}
+                currentVersion={localVersion}
+                onPublish={performPublish}
+                onCancel={() => setIsPublishModalOpen(false)}
             />
         </div >
     );

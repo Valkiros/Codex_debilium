@@ -85,7 +85,7 @@ export const CATEGORY_SCHEMAS: Record<string, FieldDef[]> = {
         { key: 'monnaie', label: 'Monnaie', type: 'text', width: '80px' },
         { key: 'degats', label: 'Dégâts', type: 'text', width: '100px' },
         { key: 'pi', label: 'PI', type: 'number', width: '60px' },
-        ...CARACS_FIELDS.slice(0, 8),   // Courage, Intelligence, Charisme, Adresse, Force, Perception, Esquive, Attaque, Parade
+        ...CARACS_FIELDS.slice(0, 9),   // Courage, Intelligence, Charisme, Adresse, Force, Perception, Esquive, Attaque, Parade
         { key: 'effet', label: 'Effet', type: 'textarea', width: '250px' },
         { key: 'rupture', label: 'Rupture', type: 'text', width: '80px' },
         { key: 'poids', label: 'Poids (g)', type: 'number', width: '60px' },

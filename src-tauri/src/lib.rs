@@ -37,6 +37,7 @@ pub fn run() {
             greet,
             sync::sync_personnages,
             sync::sync_ref_items,
+            sync::publish_ref_items,
             sync::check_remote_db_version,
             commands::get_local_db_version,
             commands::update_local_db_version,

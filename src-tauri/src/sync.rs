@@ -62,6 +62,102 @@ pub fn sync_personnages(
 }
 
 #[tauri::command]
+pub fn publish_ref_items(
+    token: String,
+    version: String,
+    supabase_url: String,
+    supabase_key: String,
+    state: State<AppState>,
+) -> Result<String, String> {
+    let client = Client::new();
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+
+    // 1. Fetch Local Items
+    let mut stmt = db
+        .prepare("SELECT id, category, ref_id, nom, degats, caracteristiques, protections, prix_info, craft, details FROM ref_items")
+        .map_err(|e| e.to_string())?;
+
+    let local_items: Vec<serde_json::Value> = stmt
+        .query_map([], |row| {
+             Ok(serde_json::json!({
+                "id": row.get::<_, i64>(0)?,
+                "category": row.get::<_, String>(1)?,
+                "ref_id": row.get::<_, i32>(2)?,
+                "nom": row.get::<_, String>(3)?,
+                "degats": serde_json::from_str::<serde_json::Value>(&row.get::<_, String>(4)?).unwrap_or(serde_json::Value::Null),
+                "caracteristiques": serde_json::from_str::<serde_json::Value>(&row.get::<_, String>(5)?).unwrap_or(serde_json::Value::Null),
+                "protections": serde_json::from_str::<serde_json::Value>(&row.get::<_, String>(6)?).unwrap_or(serde_json::Value::Null),
+                "prix_info": serde_json::from_str::<serde_json::Value>(&row.get::<_, String>(7)?).unwrap_or(serde_json::Value::Null),
+                "craft": serde_json::from_str::<serde_json::Value>(&row.get::<_, String>(8)?).unwrap_or(serde_json::Value::Null),
+                "details": serde_json::from_str::<serde_json::Value>(&row.get::<_, String>(9)?).unwrap_or(serde_json::Value::Null),
+            }))
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    // 2. Publish Items to Supabase
+    let url_items = format!("{}/rest/v1/ref_items", supabase_url);
+
+    for chunk in local_items.chunks(100) {
+        let response = client
+            .post(&url_items)
+            .header("apikey", &supabase_key)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json")
+            .header("Prefer", "resolution=merge-duplicates")
+            .json(&chunk)
+            .send()
+            .map_err(|e| e.to_string())?;
+
+        if !response.status().is_success() {
+            return Err(format!(
+                "Failed to upload items batch: {}",
+                response.text().unwrap_or_default()
+            ));
+        }
+    }
+
+    // 3. Update Remote Version with User Provided Version
+    let url_meta = format!("{}/rest/v1/db_meta", supabase_url);
+    let meta_payload = serde_json::json!({
+        "key": "ref_version",
+        "value": version
+    });
+
+    let resp_meta = client
+        .post(&url_meta)
+        .header("apikey", &supabase_key)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .header("Prefer", "resolution=merge-duplicates")
+        .json(&meta_payload)
+        .send()
+        .map_err(|e| e.to_string())?;
+
+    if !resp_meta.status().is_success() {
+        return Err(format!(
+            "Failed to update version: {}",
+            resp_meta.text().unwrap_or_default()
+        ));
+    }
+
+    // 4. Update Local Version to match
+    // Reuse existing logic via DB execution since we have the lock
+    db.execute(
+        "INSERT OR REPLACE INTO db_meta (key, value) VALUES ('ref_version', ?1)",
+        [&version],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(format!(
+        "Published {} items. New version: {}",
+        local_items.len(),
+        version
+    ))
+}
+
+#[tauri::command]
 pub fn sync_ref_items(
     token: String,
     supabase_url: String,
@@ -168,26 +264,6 @@ pub fn sync_ref_items(
 
     // NEW: Update local version after successful sync
     // We try to fetch the remote version to store it locally
-    // If not found, we use a timestamp or "1" to just mark it as synced.
-    // Ideally, we reuse the check logic, but here inside the command it is easier to just update if we have the info.
-    // For now, let's just mark it as "synced" with a timestamp or if we can fetch the remote db_meta first.
-    // Simpler: Just set a "Synced at X" or similar?
-    // BETTER: The user wants proper versioning.
-    // Let's make a quick fetch to db_meta on remote to get the REAL version to store.
-
-    // ... Actually, the robust way is: check_remote gave us a version. We should probably pass it here?
-    // Or we fetch it again. Fetching again is safer.
-
-    // But we are inside a transaction. Network calls inside transaction are bad practice but here it's fine for a small app.
-    // However, to keep it simple, let's just do a separate query or assume the caller passed the version.
-    // Changing the signature breaks frontend? Yes.
-    // Let's just fetch db_meta here if possible.
-
-    // Actually, `check_remote_db_version` is what the frontend calls.
-    // `sync_ref_items` is what updates.
-    // So `sync_ref_items` should fetch the remote version and store it.
-
-    // fetching remote version...
     let version_url = format!(
         "{}/rest/v1/db_meta?key=eq.ref_version&select=value",
         supabase_url
@@ -250,26 +326,6 @@ pub fn check_remote_db_version(
         }
     }
 
-    // 2. Fallback: Return a hash-like or count if db_meta missing
-    // We just return "unknown" or logic to force update?
-    // Let's return "COUNT:X"
-    let count_url = format!("{}/rest/v1/ref_items?select=id&limit=1", supabase_url);
-    let count_res = client
-        .get(&count_url)
-        .header("apikey", &supabase_key)
-        .header("Authorization", format!("Bearer {}", token))
-        .header("Prefer", "count=exact")
-        .send()
-        .map_err(|e| e.to_string())?;
-
-    // Extract Content-Range: 0-0/TOTAL
-    if let Some(range) = count_res.headers().get("Content-Range") {
-        if let Ok(s) = range.to_str() {
-            if let Some(total) = s.split('/').last() {
-                return Ok(format!("COUNT:{}", total));
-            }
-        }
-    }
-
+    // 2. Fallback: Return 0 if not found (means no versioned DB exists or empty)
     Ok("0".to_string())
 }

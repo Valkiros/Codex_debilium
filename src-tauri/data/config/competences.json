@@ -1935,11 +1935,6 @@
     "Tableau": ""
   },
   {
-    "Competence": "Réparations de fortune",
-    "Description": "Le héros peut réparer un objet en remplaçant jusqu’à 2 types d’ingrédients par d’autres types d’ingrédients relativement compatibles. L’objet ainsi réparé regagne ses caractéristiques normales pendant 1 décade. De plus, il peut réparer et améliorer un objet enchanté ou béni.",
-    "Tableau": ""
-  },
-  {
     "Competence": "Doctrine d'Héphaïstos",
     "Description": "Les armes créées ou améliorées par le héros ont Crit+1 et Pi+3.",
     "Tableau": ""
@@ -2720,11 +2715,6 @@
     "Tableau": ""
   },
   {
-    "Competence": "Invincible III",
-    "Description": "Après avoir subit des dégâts pour la première fois durant le tour, le héros devient invulnérable jusqu'à son prochain tour",
-    "Tableau": ""
-  },
-  {
     "Competence": "Tonton chepaki est mort",
     "Description": "A chaque passage de niveau lancer 1D6, sur 1, 3 et 5 : un membre éloigné de la famille est décédé et le héros est le descendant le plus proche. Il hérite de 1D20 x 100 Po versés sur le compte en banque. Sur 6 : il hérite de 2000 Po.",
     "Tableau": ""
@@ -2815,16 +2805,6 @@
     "Tableau": ""
   },
   {
-    "Competence": "Clipitaine des grandes compagnies",
-    "Description": "Durant un combat, au lieu d’agir, le héros peut donner des ordres à ses alliés afin de leur fournir un bonus situationnel en échange d’un malus. L’ordre donné concerne tous les alliés et dure jusqu’à la fin du combat ou jusqu’à ce qu’il soit changé par un autre. Les ordres sont :",
-    "Tableau": "- FORMEZ LE CARRE : AT+2, Pi+5 et PR nat+4 contre les ennemis sur des montures mais Pi à distance subis+5\n- TIREZ A VOLONTE : AD tir+2 et Pi+5 à distance mais AT-3 et PRD-3 au CàC\n- HOMMES D’ARMES A L’AVANT : AT+2, PRD+2 et Crit+2 au CàC, mais ES-3\n- FORMATION DESSEREE : Pi à distance subis-5 mais Pi subis au CàC+5\n- TENEZ-BON : PRD+3, ES+2 et PR nat+2 mais MvT-5m"
-  },
-  {
-    "Competence": "Voici vos ordres",
-    "Description": "Avant un combat le héros peut donner un ordre particulier à chacun de ses alliés sur INT afin de leur donner un bonus. En combat il peut perdre 1T pour remplacer un ordre d’un allié par un autre sur INT. Les bonus ont cours dès le début du combat et jusqu’à leur remplacement ou la fin du combat. Il peut choisir les ordres parmi la liste suivante :",
-    "Tableau": "- Tir de suppression : Les armes à distance nécessite 1 assaut de moins pour tirer et ont AD+1\n- Abattez-moi ça : Les armes à distance ont Pi+3 et n’ont plus de malus dus à la distance\n- Ne les laissez-pas passer : Il n’y a pas d’épreuve d’AT pour les attaques d’opportunité (sauf critique)\n- Tenez la ligne : PR nat+2 et PRD+1\n- Chargez leur position : MvT+50%\n- Percez leur flanc : AT+1 et ignore 3 PR phy \n- Repliez-vous : Donne APPEL DES RENFORTS"
-  },
-  {
     "Competence": "Aura farming",
     "Description": "En combat, les PnJ sous les ordres du héros ont Pv+15, AT+2, PRD+2, AD tir+1, Pi+5 et PR mag+2.",
     "Tableau": ""
@@ -2852,11 +2832,6 @@
   {
     "Competence": "Garde du corps",
     "Description": "Avant un combat, le héros peut choisir un membre de la compagnie ayant plus de PR phy que lui. Lorsque ce dernier est à moins de 5m en combat, il subit la moitié des Pi infligeant la perte de Pv subis par le héros, à sa place. Chaque Pi subi donne 1xp au garde du corps. Le garde du corps déduit toujours l’ensemble de son armure lorsqu’il encaisse ces Pi.",
-    "Tableau": ""
-  },
-  {
-    "Competence": "Sauve-moi mon Roméo",
-    "Description": "1 fois par combat, au lieu d’attaquer, le héros peut séduire une cible humanoïde pour la faire changer de camp sur CHA-2 vs INT.",
     "Tableau": ""
   },
   {

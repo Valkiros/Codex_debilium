@@ -178,9 +178,9 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     className={`bg-parchment border border-leather shadow-xl overflow-y-auto ${getDropdownStyle().bottom ? 'rounded-t-md border-b-0' : 'rounded-b-md border-t-0'}`}
                 >
                     {filteredOptions.length > 0 ? (
-                        filteredOptions.map(option => (
+                        filteredOptions.map((option, idx) => (
                             <div
-                                key={option.id}
+                                key={`${option.id}-${idx}`}
                                 className="px-3 py-2 cursor-pointer hover:bg-leather/10 text-ink text-sm whitespace-nowrap border-b border-leather/10 last:border-0"
                                 onClick={() => handleSelect(option)}
                                 title={option.label}
