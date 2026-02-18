@@ -10,17 +10,21 @@ import { ConfirmModal } from "./components/Shared/ConfirmModal";
 import { UserProfile } from "./types";
 
 import { AdminPanel } from "./components/Admin/AdminPanel";
+import { RefProvider } from "./context/RefContext";
 
 // ... (existing imports)
 
 import { ThemeProvider } from "./context/ThemeContext";
 import { ThemeSelector } from "./components/Shared/ThemeSelector";
 import { ErrorBoundary } from "./components/Shared/ErrorBoundary";
-import { DatabaseUpdate } from "./components/Shared/DatabaseUpdate";
+import { DatabaseUpdate, DatabaseUpdateHandle } from "./components/Shared/DatabaseUpdate";
+import { InfoModal } from "./components/Shared/InfoModal"; // Import InfoModal
 
 import { check, Update } from "@tauri-apps/plugin-updater";
+import { getVersion } from "@tauri-apps/api/app"; // Import App Version
 import { relaunch } from "@tauri-apps/plugin-process";
 import { UpdateModal, UpdateStatus } from "./components/Shared/UpdateModal";
+import { TitleBar } from "./components/Shared/TitleBar";
 
 // ... (dans AppContent, après les autres useEffect)
 
@@ -33,6 +37,14 @@ function AppContent() {
   const [isDirty, setIsDirty] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+
+
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [appVersion, setAppVersion] = useState("0.0.0");
+  const [dbVersions, setDbVersions] = useState({ local: "?", remote: "?" });
+
+  const dbUpdateRef = useRef<DatabaseUpdateHandle>(null);
 
   /* -------------------------------------------------------------
    *  Données de mise à jour (Modal personnalisée)
@@ -209,8 +221,27 @@ function AppContent() {
     );
   }
 
+  useEffect(() => {
+    // Fetch App Version on mount
+    getVersion().then(v => setAppVersion(v));
+  }, []);
+
+  const handleGlobalUpdateCheck = async () => {
+    // 1. Check Software
+    await checkForUpdates(true);
+    // 2. Check Database
+    if (dbUpdateRef.current) {
+      await dbUpdateRef.current.checkForUpdates(true);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-screen w-screen bg-parchment text-leather font-sans overflow-hidden overscroll-none relative">
+    <div className="flex flex-col h-screen w-screen bg-parchment text-leather font-sans overflow-hidden overscroll-none relative pt-8">
+      <TitleBar
+        onCheckUpdate={handleGlobalUpdateCheck}
+        onOpenInfo={() => setShowInfoModal(true)}
+      />
+
       <header className="p-4 bg-leather text-parchment shadow-md flex justify-between items-center sticky top-0 z-40">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold">Codex debilium</h1>
@@ -291,16 +322,7 @@ function AppContent() {
             </button>
           )}
 
-          {/* Update Button */}
-          <button
-            onClick={() => checkForUpdates(true)}
-            className="px-3 py-1 bg-leather-light text-parchment rounded text-sm hover:bg-leather-lighter cursor-pointer border border-parchment/20"
-            title="Vérifier les mises à jour"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-          </button>
+
 
         </div>
       </header>
@@ -344,12 +366,21 @@ function AppContent() {
         onInstall={handleInstallUpdate}
       />
 
-      <DatabaseUpdate />
+      <InfoModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        appVersion={appVersion}
+        dbVersionLocal={dbVersions.local}
+        dbVersionRemote={dbVersions.remote}
+      />
+
+      <DatabaseUpdate
+        ref={dbUpdateRef}
+        onVersionDetected={(local, remote) => setDbVersions({ local, remote })}
+      />
     </div>
   );
 }
-
-import { RefProvider } from "./context/RefContext";
 
 function App() {
   return (

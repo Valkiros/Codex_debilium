@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../constants';
 
 import { useRefContext } from '../../context/RefContext';
 
-interface DatabaseUpdateProps {
-    onUpdateComplete?: () => void;
+export interface DatabaseUpdateHandle {
+    checkForUpdates: (manual?: boolean) => Promise<void>;
 }
 
-export const DatabaseUpdate: React.FC<DatabaseUpdateProps> = ({ onUpdateComplete }) => {
+interface DatabaseUpdateProps {
+    onUpdateComplete?: () => void;
+    onVersionDetected?: (local: string, remote: string) => void;
+}
+
+export const DatabaseUpdate = forwardRef<DatabaseUpdateHandle, DatabaseUpdateProps>(({ onUpdateComplete, onVersionDetected }, ref) => {
     const [status, setStatus] = useState<'checking' | 'up-to-date' | 'outdated' | 'updating' | 'error' | 'empty'>('checking');
     const [message, setMessage] = useState('');
     const [localVersion, setLocalVersion] = useState('');
@@ -17,13 +22,22 @@ export const DatabaseUpdate: React.FC<DatabaseUpdateProps> = ({ onUpdateComplete
     // Get reloadRefs from context
     const { reloadRefs } = useRefContext();
 
+    useImperativeHandle(ref, () => ({
+        checkForUpdates: (manual = false) => checkVersions(manual)
+    }));
+
     useEffect(() => {
-        checkVersions();
+        checkVersions(false);
     }, []);
 
-    const checkVersions = async () => {
+    const checkVersions = async (manual = false) => {
         try {
-            setStatus('checking');
+            if (manual) setMessage("Vérification...");
+            // Don't set status to 'checking' if manual, to avoid hiding if already visible?
+            // Actually, if manual, we want to show feedback.
+            // But 'checking' returns null (invisible) in current render logic.
+            // We should probably just do the check.
+
             const localV = await invoke<string>('get_local_db_version');
             const localCount = await invoke<number>('get_local_items_count');
             setLocalVersion(localV);
@@ -36,28 +50,49 @@ export const DatabaseUpdate: React.FC<DatabaseUpdateProps> = ({ onUpdateComplete
             });
             setRemoteVersion(remoteV);
 
+            if (onVersionDetected) {
+                onVersionDetected(localV, remoteV);
+            }
+
             console.log(`DB Check: Local=${localV} (Count=${localCount}), Remote=${remoteV}`);
 
             if (localCount === 0) {
                 setStatus('empty'); // Force Update
                 handleUpdate(); // Auto-start for empty DB
             } else {
-                // Version comparison logic
-                const local = parseInt(localV) || 0;
-                const remote = parseInt(remoteV) || 0;
-
-                if (remote > local) {
+                if (compareVersions(remoteV, localV) > 0) {
                     setStatus('outdated');
                 } else {
                     setStatus('up-to-date');
+                    if (manual) {
+                        alert("La base de données est à jour !");
+                    }
                 }
             }
-
         } catch (err) {
             console.error("Failed to check DB version:", err);
             setStatus('error');
             setMessage('Erreur vérification BDD');
+            if (manual) alert("Erreur lors de la vérification de la BDD: " + err);
         }
+    };
+
+    // Returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal
+    const compareVersions = (v1: string, v2: string) => {
+        // Strip non-numeric prefix if present (e.g. "v1.0.0" -> "1.0.0")
+        const cleanV1 = v1.replace(/^[^\d]+/, '');
+        const cleanV2 = v2.replace(/^[^\d]+/, '');
+
+        const parts1 = cleanV1.split('.').map(Number);
+        const parts2 = cleanV2.split('.').map(Number);
+
+        for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+            const val1 = parts1[i] || 0;
+            const val2 = parts2[i] || 0;
+            if (val1 > val2) return 1;
+            if (val1 < val2) return -1;
+        }
+        return 0;
     };
 
     const handleUpdate = async () => {
@@ -82,6 +117,9 @@ export const DatabaseUpdate: React.FC<DatabaseUpdateProps> = ({ onUpdateComplete
             // Re-check to sync local version state
             const newLocalV = await invoke<string>('get_local_db_version');
             setLocalVersion(newLocalV);
+            if (onVersionDetected) {
+                onVersionDetected(newLocalV, remoteVersion);
+            }
 
         } catch (err: any) {
             console.error("Update failed:", err);
@@ -130,4 +168,4 @@ export const DatabaseUpdate: React.FC<DatabaseUpdateProps> = ({ onUpdateComplete
             </div>
         </div>
     );
-};
+});

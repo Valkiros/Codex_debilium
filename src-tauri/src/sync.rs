@@ -97,6 +97,23 @@ pub fn publish_ref_items(
         .map_err(|e| e.to_string())?;
 
     // 2. Publish Items to Supabase
+    // 2. Publish Items to Supabase
+    // Clear remote table first, then upload local items.
+    let url_delete = format!("{}/rest/v1/ref_items?id=neq.-1", supabase_url);
+    let response_del = client
+        .delete(&url_delete)
+        .header("apikey", &supabase_key)
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .map_err(|e| e.to_string())?;
+
+    if !response_del.status().is_success() {
+        return Err(format!(
+            "Failed to clear remote table: {}",
+            response_del.text().unwrap_or_default()
+        ));
+    }
+
     let url_items = format!("{}/rest/v1/ref_items", supabase_url);
 
     for chunk in local_items.chunks(100) {
