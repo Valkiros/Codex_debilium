@@ -476,7 +476,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
     return (
-        <div className="fixed inset-0 w-full h-full flex flex-col bg-parchment p-4 box-border overflow-hidden overscroll-none z-50">
+        <div className="fixed inset-0 w-full h-full flex flex-col bg-parchment pt-12 px-4 pb-4 box-border overflow-hidden overscroll-none z-50">
             <div className="flex justify-between items-center mb-6 border-b border-leather/20 pb-2 flex-shrink-0">
                 <h2 className="text-2xl font-bold font-serif text-leather-dark">
                     Administration de la Base de Données
@@ -671,11 +671,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                                 value={editingItem.category}
                                                 onChange={(e) => {
                                                     const newCategory = e.target.value;
-                                                    // When changing category, reset fields specific to old schema? 
-                                                    // Ideally yes, but keeping data is safer. 
-                                                    // We must update the RefId though? The user didn't ask, but it makes sense.
-                                                    // We will just update the category for now as requested.
-                                                    setEditingItem({ ...editingItem, category: newCategory });
+                                                    setEditingItem({
+                                                        ...editingItem,
+                                                        category: newCategory,
+                                                        ref_id: getNextRefId(newCategory)
+                                                    });
                                                 }}
                                                 disabled={!!editingItem.id}
                                             >

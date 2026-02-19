@@ -8,30 +8,30 @@ export const getApeOriginKey = (origin: string): string => {
     const normalized = origin.toLowerCase().trim();
 
     // Mapping logic
-    if (normalized.includes('Barbare') || normalized.includes('Amazone Syldérienne') ||
-        normalized.includes('Loup-Garou') || normalized.includes('Minotaure') ||
-        normalized.includes('Homme-bête (Canin)') || normalized.includes('Femme-bête (Canin)')) {
+    if (normalized.includes('barbare') || normalized.includes('amazone syldérienne') ||
+        normalized.includes('loup-garou') || normalized.includes('minotaure') ||
+        normalized.includes('homme-bête (canin)') || normalized.includes('femme-bête (canin)')) {
         return 'barbare';
     }
-    if (normalized.includes('Humain') || normalized.includes('Humaine') ||
-        normalized.includes('Demi-Elfe (H)') || normalized.includes('Demie-Elfe (H)') ||
-        normalized.includes('Demi-Orque (H)') || normalized.includes('Demie-Orque (H)') ||
-        normalized.includes('Vampire') || normalized.includes('Squelette sentient') ||
-        normalized.includes('Galéanthrope') || normalized.includes('Wukong') ||
-        normalized.includes('Nelfe')) {
+    if (normalized.includes('humain') || normalized.includes('humaine') ||
+        normalized.includes('demi-elfe (h)') || normalized.includes('demie-elfe (h)') ||
+        normalized.includes('demi-orque (h)') || normalized.includes('demie-orque (h)') ||
+        normalized.includes('vampire') || normalized.includes('squelette sentient') ||
+        normalized.includes('galéanthrope') || normalized.includes('wukong') ||
+        normalized.includes('nelfe')) {
         return 'humain';
     }
-    if (normalized.includes('Elfe Noir') || normalized.includes('Incube') ||
-        normalized.includes('Succube') || normalized.includes('Drac') ||
-        normalized.includes('Draque') || normalized.includes('Kitsune') ||
-        normalized.includes('Naga')) {
+    if (normalized.includes('elfe noir') || normalized.includes('incube') ||
+        normalized.includes('succube') || normalized.includes('drac') ||
+        normalized.includes('draque') || normalized.includes('kitsune') ||
+        normalized.includes('naga')) {
         return 'elfe_noir';
     }
     // Check "elfe" AFTER "elfe noir" to avoid partial match issues
     if (normalized.includes('elfe sylvain') ||
         normalized.includes('haut elfe') || normalized.includes('haute elfe') ||
         normalized === 'elfe' || // Explicit Exact Match
-        normalized === 'Elfe' ||
+        normalized === 'elfe' ||
         normalized.includes('demi-elfe (e)') || normalized.includes('demie-elfe (e)') ||
         normalized.includes('homme-lézard') || normalized.includes('femme-lézard') ||
         normalized.includes('fée')) {
@@ -60,7 +60,7 @@ export const getApeOriginKey = (origin: string): string => {
         normalized.includes('tengu')) {
         return 'gnome';
     }
-    if (normalized.includes('Hobbit')) {
+    if (normalized.includes('hobbit')) {
         return 'semi-homme';
     }
 

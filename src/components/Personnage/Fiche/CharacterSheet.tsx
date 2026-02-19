@@ -598,11 +598,30 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 const baseSpe = parseInt(String(protections.pr_spe || 0), 10);
                 const baseMag = parseInt(String(protections.pr_mag || 0), 10);
 
-                // Environment Base
-                const basePluie = refItem?.pluie || 0;
-                const baseFroid = refItem?.froid || 0;
-                const baseChaleur = refItem?.chaleur || 0;
+                // Environment Base (Pluie/Froid/Chaleur)
+                // Only consider equipped Protections and Accessories
+                if (item.equipement_type === 'Protections' || item.equipement_type === 'Accessoires') {
+                    const prots = refItem?.protections || refItem?.raw?.protections;
 
+                    if (prots) {
+                        const valPluie = parseInt(String(prots.pluie || 0), 10);
+                        const valFroid = parseInt(String(prots.froid || 0), 10);
+                        const valChaleur = parseInt(String(prots.chaleur || 0), 10);
+
+                        if (valPluie !== 0) {
+                            totals.protection_pluie.value += valPluie;
+                            totals.protection_pluie.details.components.push({ label: refItem?.nom || item.nom, value: valPluie });
+                        }
+                        if (valFroid !== 0) {
+                            totals.protection_froid.value += valFroid;
+                            totals.protection_froid.details.components.push({ label: refItem?.nom || item.nom, value: valFroid });
+                        }
+                        if (valChaleur !== 0) {
+                            totals.protection_chaleur.value += valChaleur;
+                            totals.protection_chaleur.details.components.push({ label: refItem?.nom || item.nom, value: valChaleur });
+                        }
+                    }
+                }
 
                 // Modifiers
                 const modSol = parseInt(String(item.modif_pr_sol || 0), 10);
@@ -624,20 +643,6 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 if (valMag !== 0) {
                     totals.magique.value += valMag;
                     totals.magique.details.components.push({ label: refItem?.nom || item.nom, value: valMag });
-                }
-
-                // Environment Stats Calculation
-                if (basePluie !== 0) {
-                    totals.protection_pluie.value += basePluie;
-                    totals.protection_pluie.details.components.push({ label: refItem?.nom || item.nom, value: basePluie });
-                }
-                if (baseFroid !== 0) {
-                    totals.protection_froid.value += baseFroid;
-                    totals.protection_froid.details.components.push({ label: refItem?.nom || item.nom, value: baseFroid });
-                }
-                if (baseChaleur !== 0) {
-                    totals.protection_chaleur.value += baseChaleur;
-                    totals.protection_chaleur.details.components.push({ label: refItem?.nom || item.nom, value: baseChaleur });
                 }
 
                 // Check char_values for Discretion and Magic Bonuses
@@ -673,21 +678,40 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                         totals.resistance_magique.value += val;
                         totals.resistance_magique.details.components.push({ label: refItem?.nom || item.nom, value: val });
                     }
+                }
 
-                    // Marche
-                    const marcheKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'marche');
-                    if (marcheKey) {
-                        const val = item.char_values[marcheKey] || 0;
-                        totals.marche.value += val;
-                        totals.marche.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                // Check Reference Characteristics for Movement Bonuses (mvt, marche, course)
+                // We check both raw characteristics and updated schema
+                const caracs = refItem?.caracteristiques || refItem?.raw?.caracteristiques;
+                if (caracs) {
+                    // Generic MVT (applies to both Marche and Course)
+                    if (caracs.mvt) {
+                        const val = parseInt(String(caracs.mvt), 10);
+                        if (val !== 0) {
+                            totals.marche.value += val;
+                            totals.marche.details.components.push({ label: `${refItem?.nom || item.nom} (Mvt)`, value: val });
+
+                            totals.course.value += val;
+                            totals.course.details.components.push({ label: `${refItem?.nom || item.nom} (Mvt)`, value: val });
+                        }
                     }
 
-                    // Course
-                    const courseKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'course');
-                    if (courseKey) {
-                        const val = item.char_values[courseKey] || 0;
-                        totals.course.value += val;
-                        totals.course.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                    // Specific Marche
+                    if (caracs.marche) {
+                        const val = parseInt(String(caracs.marche), 10);
+                        if (val !== 0) {
+                            totals.marche.value += val;
+                            totals.marche.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        }
+                    }
+
+                    // Specific Course
+                    if (caracs.course) {
+                        const val = parseInt(String(caracs.course), 10);
+                        if (val !== 0) {
+                            totals.course.value += val;
+                            totals.course.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        }
                     }
                 }
             }
