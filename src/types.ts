@@ -233,6 +233,15 @@ export interface CustomSacItem {
     poids: number; // Poids Unitaire
 }
 
+export interface CatalogueItem {
+    uid: string; // Identifiant unique pour la liste (uuid)
+    refId: number; // L'ID de l'objet de référence (Notre référence à nous)
+    quantite: number;
+    rarete: number; // 0.5, 1, 1.5, 2
+    is_included: boolean; // La case à cocher globale de la ligne
+    is_condensed: boolean; // La case à cocher de vue de l'objet
+}
+
 // Interface pour les données du personnage
 export interface CharacterData {
     identity: Identity;
@@ -245,6 +254,7 @@ export interface CharacterData {
     temp_modifiers: TempModifiers;
     inventory: any[]; // Placeholder for now, will link to existing inventory structure
     custom_sac_items: CustomSacItem[]; // Nouveaux objets personnalisés du sac
+    catalogue?: CatalogueItem[]; // Liste d'achats du catalogue
     ape: ApeEntry[]; // Nouvelle structures pour les APE
     competences: CharacterCompetence[];
     competences_specialisation: CharacterCompetence[];

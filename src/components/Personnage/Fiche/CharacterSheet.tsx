@@ -17,6 +17,7 @@ import { DomainPanel } from '../Competences/DomainPanel';
 import { StatusPanel } from '../Etat/StatusPanel';
 import { SacochesEtPoches } from '../SacochesEtPoches/SacochesEtPoches';
 import { SacPanel } from '../Sac/SacPanel';
+import { Catalogue } from '../Catalogue/Catalogue';
 import { APE } from '../APE/APE';
 import { RichessePanel } from '../../Personnage/Richesse/RichessePanel';
 import { CharacterData, Equipement, Characteristics, Origine } from '../../../types';
@@ -24,7 +25,7 @@ import { INITIAL_DATA } from '../../../constants';
 import { useRefContext } from '../../../context/RefContext';
 import { getAlcoholModifiers } from '../../../utils/alcohol';
 import { getItemWeight } from '../../../utils/sacUtils';
-import { GiScrollQuill, GiChestArmor, GiBelt, GiBackpack, GiHeartBeats, GiOpenBook, GiDna1, GiCoins } from 'react-icons/gi';
+import { GiScrollQuill, GiChestArmor, GiBelt, GiBackpack, GiHeartBeats, GiOpenBook, GiDna1, GiCoins, GiShop } from 'react-icons/gi';
 
 
 export interface CharacterSheetHandle {
@@ -152,7 +153,7 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             });
     }, [characterId, refs]); // Added refs dependency to trigger repair if refs load after char
 
-    const [activeTab, setActiveTab] = useState<'fiche' | 'equipement' | 'sacoches' | 'sac' | 'status' | 'competences' | 'ape' | 'richesse'>('fiche');
+    const [activeTab, setActiveTab] = useState<'fiche' | 'equipement' | 'sacoches' | 'sac' | 'catalogue' | 'status' | 'competences' | 'ape' | 'richesse'>('fiche');
     const [showAdBonusModal, setShowAdBonusModal] = useState(false);
 
     // Check for AD > 12 Bonus Logic
@@ -1032,6 +1033,13 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     <GiBackpack className="w-8 h-8" />
                 </button>
                 <button
+                    onClick={() => setActiveTab('catalogue')}
+                    title="Catalogue"
+                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'catalogue' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                >
+                    <GiShop className="w-8 h-8" />
+                </button>
+                <button
                     onClick={() => setActiveTab('status')}
                     title="État"
                     className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'status' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
@@ -1157,6 +1165,16 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     onInventoryChange={(inventory) => setData({ ...data, inventory })}
                     customItems={data.custom_sac_items}
                     onCustomItemsChange={(custom_sac_items) => setData({ ...data, custom_sac_items })}
+                />
+            </div>
+
+            <div className={activeTab === 'catalogue' ? 'animate-fade-in' : 'hidden'}>
+                <Catalogue
+                    items={data.catalogue || []}
+                    onItemsChange={(catalogueItems) => {
+                        setData({ ...data, catalogue: catalogueItems });
+                        onDirtyChange?.(true);
+                    }}
                 />
             </div>
 
