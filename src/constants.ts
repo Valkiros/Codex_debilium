@@ -63,6 +63,7 @@ export const INITIAL_DATA: CharacterData = {
     inventory: [],
     custom_sac_items: [],
     catalogue: [],
+    catalogue_is_global_condensed: false,
     ape: [],
     competences: [],
     competences_specialisation: [],

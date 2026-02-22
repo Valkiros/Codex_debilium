@@ -30,6 +30,8 @@ import { GiScrollQuill, GiChestArmor, GiBelt, GiBackpack, GiHeartBeats, GiOpenBo
 
 export interface CharacterSheetHandle {
     save: () => Promise<void>;
+    undo: () => void;
+    redo: () => void;
 }
 
 interface CharacterSheetProps {
@@ -44,7 +46,9 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
     const [referenceCompetences, setReferenceCompetences] = useState<any[]>([]);
     const isInitialLoad = React.useRef(true);
 
-    useEffect(() => {
+    const historyRef = React.useRef<string[]>([]);
+    const historyIndexRef = React.useRef(-1);
+    const isUndoingRef = React.useRef(false); useEffect(() => {
         invoke('get_competences')
             .then((comps: any) => setReferenceCompetences(comps))
             .catch(err => console.error("Failed to load competences:", err));
@@ -68,16 +72,111 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
     };
 
     useImperativeHandle(ref, () => ({
-        save: saveCharacter
+        save: saveCharacter,
+        undo: undo,
+        redo: redo
     }));
 
-    const setData = (newData: CharacterData) => {
-        setDataState(newData);
+    const pushToHistory = (newData: CharacterData) => {
+        if (isUndoingRef.current || isInitialLoad.current) return;
+        const serialized = JSON.stringify(newData);
+
+        if (historyIndexRef.current >= 0 && historyRef.current[historyIndexRef.current] === serialized) return;
+
+        const currentIdx = historyIndexRef.current;
+        const newHistory = historyRef.current.slice(0, currentIdx + 1);
+        newHistory.push(serialized);
+
+        if (newHistory.length > 50) newHistory.shift();
+
+        historyRef.current = newHistory;
+        historyIndexRef.current = newHistory.length - 1;
+    };
+
+    const undo = () => {
+        if (historyIndexRef.current > 0) {
+            isUndoingRef.current = true;
+            historyIndexRef.current -= 1;
+            const prevStateString = historyRef.current[historyIndexRef.current];
+            const prevState = JSON.parse(prevStateString);
+
+            setDataState(prevState);
+            onDirtyChange?.(true);
+
+            setTimeout(() => { isUndoingRef.current = false; }, 50);
+        }
+    };
+
+    const redo = () => {
+        if (historyIndexRef.current < historyRef.current.length - 1) {
+            isUndoingRef.current = true;
+            historyIndexRef.current += 1;
+            const nextStateString = historyRef.current[historyIndexRef.current];
+            const nextState = JSON.parse(nextStateString);
+
+            setDataState(nextState);
+            onDirtyChange?.(true);
+
+            setTimeout(() => { isUndoingRef.current = false; }, 50);
+        }
+    };
+
+    const setData = (newData: CharacterData | ((prev: CharacterData) => CharacterData)) => {
+        if (typeof newData === 'function') {
+            setDataState(prev => {
+                const updated = newData(prev);
+                pushToHistory(updated);
+                return updated;
+            });
+        } else {
+            setDataState(newData);
+            pushToHistory(newData);
+        }
         if (!isInitialLoad.current) {
             onDirtyChange?.(true);
         }
     };
 
+    const saveRef = React.useRef(saveCharacter);
+    const undoRef = React.useRef(undo);
+    const redoRef = React.useRef(redo);
+
+    useEffect(() => {
+        saveRef.current = saveCharacter;
+        undoRef.current = undo;
+        redoRef.current = redo;
+    });
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    saveRef.current();
+                } else if (e.key.toLowerCase() === 'z') {
+                    // Prevent our custom override if user is typing in generic inputs
+                    const tag = document.activeElement?.tagName.toLowerCase();
+                    if (tag === 'input' || tag === 'textarea') return;
+
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        redoRef.current(); // CTRL+SHIFT+Z
+                    } else {
+                        undoRef.current();
+                    }
+                } else if (e.key.toLowerCase() === 'y') {
+                    const tag = document.activeElement?.tagName.toLowerCase();
+                    if (tag === 'input' || tag === 'textarea') return;
+
+                    e.preventDefault();
+                    redoRef.current();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     // Removed local fetch of Refs & Game Rules (moved to RefContext)
 
@@ -141,6 +240,8 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                         competences_sous_specialisation: char.data.competences_sous_specialisation || []
                     };
                     setDataState(mergedData);
+                    historyRef.current = [JSON.stringify(mergedData)];
+                    historyIndexRef.current = 0;
                 }
                 setCharacterLoading(false);
                 // Allow subsequent updates to trigger dirty state
@@ -883,127 +984,128 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
     }
 
     return (
-        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-20">
-            <CharacterHeader
-                characterData={data}
-                identity={data.identity}
-                vitals={data.vitals}
-                generalStats={data.general}
-                onIdentityChange={(newIdentity) => {
-                    // Smart update logic to prevent resetting specs on gender swap
-                    const updatedIdentity = { ...newIdentity };
-                    const oldIdentity = data.identity;
+        <div className={activeTab === 'catalogue' ? "w-full h-screen flex flex-col p-4 md:p-8 pb-0" : "max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-20"}>
+            <div className={activeTab === 'catalogue' ? 'hidden' : 'block'}>
+                <CharacterHeader
+                    characterData={data}
+                    identity={data.identity}
+                    vitals={data.vitals}
+                    generalStats={data.general}
+                    onIdentityChange={(newIdentity) => {
+                        // Smart update logic to prevent resetting specs on gender swap
+                        const updatedIdentity = { ...newIdentity };
+                        const oldIdentity = data.identity;
 
-                    let hasSpecChanged = false;
-                    let hasSubSpecChanged = false;
+                        let hasSpecChanged = false;
+                        let hasSubSpecChanged = false;
 
-                    if (!gameRules) {
-                        // Fallback to simple logic if rules not loaded
-                        // Only perform resets if values actually differ (name check fallback)
-                        hasSpecChanged = updatedIdentity.specialisation !== oldIdentity.specialisation;
-                        hasSubSpecChanged = updatedIdentity.sous_specialisation !== oldIdentity.sous_specialisation;
+                        if (!gameRules) {
+                            // Fallback to simple logic if rules not loaded
+                            // Only perform resets if values actually differ (name check fallback)
+                            hasSpecChanged = updatedIdentity.specialisation !== oldIdentity.specialisation;
+                            hasSubSpecChanged = updatedIdentity.sous_specialisation !== oldIdentity.sous_specialisation;
 
-                        if (updatedIdentity.metier !== oldIdentity.metier && !updatedIdentity.specialisation) {
-                            updatedIdentity.specialisation = '';
-                            updatedIdentity.sous_specialisation = '';
-                            hasSpecChanged = true;
-                            hasSubSpecChanged = true;
-                        } else if (hasSpecChanged && !updatedIdentity.sous_specialisation) {
-                            updatedIdentity.sous_specialisation = '';
-                            hasSubSpecChanged = true;
-                        }
-                    } else {
-                        // Advanced logic using IDs to handle Gender Swap (Name Change) gracefully
-                        const getMetierId = (name: string) => gameRules.metiers.find(m => m.name_m === name || m.name_f === name)?.id;
-
-                        const getSpecId = (metierName: string, specName: string) => {
-                            if (!specName) return undefined;
-                            const m = gameRules.metiers.find(m => m.name_m === metierName || m.name_f === metierName);
-                            return m?.specialisations?.find(s => s.name_m === specName || s.name_f === specName)?.id;
-                        };
-
-                        const getSubSpecId = (metierName: string, specName: string, subSpecName: string) => {
-                            if (!subSpecName) return undefined;
-                            const m = gameRules.metiers.find(m => m.name_m === metierName || m.name_f === metierName);
-                            const s = m?.specialisations?.find(s => s.name_m === specName || s.name_f === specName);
-                            return s?.sous_specialisations?.find(ss => ss.name_m === subSpecName || ss.name_f === subSpecName)?.id;
-                        };
-
-                        const oldMetierId = getMetierId(oldIdentity.metier);
-                        const newMetierId = getMetierId(updatedIdentity.metier);
-
-                        // 1. Metier Changed (different Job ID)
-                        if (oldMetierId !== newMetierId) {
-                            // If CharacterHeader didn't auto-fill a valid spec (e.g. kept old name which implies invalid), clear
-                            const isValidSpec = !!getSpecId(updatedIdentity.metier, updatedIdentity.specialisation || '');
-                            if (!isValidSpec) {
+                            if (updatedIdentity.metier !== oldIdentity.metier && !updatedIdentity.specialisation) {
                                 updatedIdentity.specialisation = '';
                                 updatedIdentity.sous_specialisation = '';
+                                hasSpecChanged = true;
+                                hasSubSpecChanged = true;
+                            } else if (hasSpecChanged && !updatedIdentity.sous_specialisation) {
+                                updatedIdentity.sous_specialisation = '';
+                                hasSubSpecChanged = true;
+                            }
+                        } else {
+                            // Advanced logic using IDs to handle Gender Swap (Name Change) gracefully
+                            const getMetierId = (name: string) => gameRules.metiers.find(m => m.name_m === name || m.name_f === name)?.id;
+
+                            const getSpecId = (metierName: string, specName: string) => {
+                                if (!specName) return undefined;
+                                const m = gameRules.metiers.find(m => m.name_m === metierName || m.name_f === metierName);
+                                return m?.specialisations?.find(s => s.name_m === specName || s.name_f === specName)?.id;
+                            };
+
+                            const getSubSpecId = (metierName: string, specName: string, subSpecName: string) => {
+                                if (!subSpecName) return undefined;
+                                const m = gameRules.metiers.find(m => m.name_m === metierName || m.name_f === metierName);
+                                const s = m?.specialisations?.find(s => s.name_m === specName || s.name_f === specName);
+                                return s?.sous_specialisations?.find(ss => ss.name_m === subSpecName || ss.name_f === subSpecName)?.id;
+                            };
+
+                            const oldMetierId = getMetierId(oldIdentity.metier);
+                            const newMetierId = getMetierId(updatedIdentity.metier);
+
+                            // 1. Metier Changed (different Job ID)
+                            if (oldMetierId !== newMetierId) {
+                                // If CharacterHeader didn't auto-fill a valid spec (e.g. kept old name which implies invalid), clear
+                                const isValidSpec = !!getSpecId(updatedIdentity.metier, updatedIdentity.specialisation || '');
+                                if (!isValidSpec) {
+                                    updatedIdentity.specialisation = '';
+                                    updatedIdentity.sous_specialisation = '';
+                                }
+                            }
+
+                            // 2. Check Specialization Change by ID
+                            const oldSpecId = getSpecId(oldIdentity.metier, oldIdentity.specialisation || '');
+                            const newSpecId = getSpecId(updatedIdentity.metier, updatedIdentity.specialisation || '');
+
+                            // If IDs differ, it's a real change (not just gender rename)
+                            // Note: If both are undefined (empty), it's not a change
+                            hasSpecChanged = oldSpecId !== newSpecId;
+
+                            // 3. Sub-Specialization logic
+                            if (hasSpecChanged) {
+                                // Spec changed -> Reset Sub-Spec
+                                updatedIdentity.sous_specialisation = '';
+                                hasSubSpecChanged = true;
+                            } else {
+                                // Spec is same (ID wise). Check Sub-Spec ID
+                                const oldSubSpecId = getSubSpecId(oldIdentity.metier, oldIdentity.specialisation || '', oldIdentity.sous_specialisation || '');
+                                const newSubSpecId = getSubSpecId(updatedIdentity.metier, updatedIdentity.specialisation || '', updatedIdentity.sous_specialisation || '');
+
+                                hasSubSpecChanged = oldSubSpecId !== newSubSpecId;
                             }
                         }
 
-                        // 2. Check Specialization Change by ID
-                        const oldSpecId = getSpecId(oldIdentity.metier, oldIdentity.specialisation || '');
-                        const newSpecId = getSpecId(updatedIdentity.metier, updatedIdentity.specialisation || '');
+                        // --- RESET LOGIC FOR COMPETENCES ---
+                        let newCompetencesSpec = data.competences_specialisation;
+                        let newCompetencesSubSpec = data.competences_sous_specialisation;
 
-                        // If IDs differ, it's a real change (not just gender rename)
-                        // Note: If both are undefined (empty), it's not a change
-                        hasSpecChanged = oldSpecId !== newSpecId;
-
-                        // 3. Sub-Specialization logic
                         if (hasSpecChanged) {
-                            // Spec changed -> Reset Sub-Spec
-                            updatedIdentity.sous_specialisation = '';
-                            hasSubSpecChanged = true;
-                        } else {
-                            // Spec is same (ID wise). Check Sub-Spec ID
-                            const oldSubSpecId = getSubSpecId(oldIdentity.metier, oldIdentity.specialisation || '', oldIdentity.sous_specialisation || '');
-                            const newSubSpecId = getSubSpecId(updatedIdentity.metier, updatedIdentity.specialisation || '', updatedIdentity.sous_specialisation || '');
-
-                            hasSubSpecChanged = oldSubSpecId !== newSubSpecId;
+                            newCompetencesSpec = [];
+                            updatedIdentity.sous_specialisation = ''; // Redundant but safe
+                            newCompetencesSubSpec = [];
+                        } else if (hasSubSpecChanged) {
+                            newCompetencesSubSpec = [];
                         }
-                    }
 
-                    // --- RESET LOGIC FOR COMPETENCES ---
-                    let newCompetencesSpec = data.competences_specialisation;
-                    let newCompetencesSubSpec = data.competences_sous_specialisation;
+                        setData({
+                            ...data,
+                            identity: updatedIdentity,
+                            competences_specialisation: newCompetencesSpec,
+                            competences_sous_specialisation: newCompetencesSubSpec
+                        });
+                    }}
+                    onVitalsChange={(vitals) => setData({ ...data, vitals })}
+                    onGeneralChange={(general) => {
+                        // Auto-calculate level based on XP
+                        const xp = general.experience || 0;
+                        const calculatedLevel = Math.floor((1 + Math.sqrt(1 + 4 * (xp / 50))) / 2);
+                        const newLevel = Math.max(1, calculatedLevel);
 
-                    if (hasSpecChanged) {
-                        newCompetencesSpec = [];
-                        updatedIdentity.sous_specialisation = ''; // Redundant but safe
-                        newCompetencesSubSpec = [];
-                    } else if (hasSubSpecChanged) {
-                        newCompetencesSubSpec = [];
-                    }
-
-                    setData({
-                        ...data,
-                        identity: updatedIdentity,
-                        competences_specialisation: newCompetencesSpec,
-                        competences_sous_specialisation: newCompetencesSubSpec
-                    });
-                }}
-                onVitalsChange={(vitals) => setData({ ...data, vitals })}
-                onGeneralChange={(general) => {
-                    // Auto-calculate level based on XP
-                    const xp = general.experience || 0;
-                    const calculatedLevel = Math.floor((1 + Math.sqrt(1 + 4 * (xp / 50))) / 2);
-                    const newLevel = Math.max(1, calculatedLevel);
-
-                    setData({
-                        ...data,
-                        general: {
-                            ...general,
-                            niveau: newLevel
-                        }
-                    });
-                }}
-                competences={data.competences}
-            />
+                        setData({
+                            ...data,
+                            general: {
+                                ...general,
+                                niveau: newLevel
+                            }
+                        });
+                    }}
+                    competences={data.competences}
+                />
+            </div>
 
             {/* Tab Navigation */}
-            {/* Tab Navigation */}
-            <div className="flex border-b-2 border-leather mb-6 overflow-x-auto whitespace-nowrap hide-scrollbar">
+            <div className={`flex border-b-2 border-leather mb-6 overflow-x-auto whitespace-nowrap hide-scrollbar ${activeTab === 'catalogue' ? 'flex-shrink-0' : ''}`}>
                 <button
                     onClick={() => setActiveTab('fiche')}
                     title="Fiche"
@@ -1168,11 +1270,16 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 />
             </div>
 
-            <div className={activeTab === 'catalogue' ? 'animate-fade-in' : 'hidden'}>
+            <div className={activeTab === 'catalogue' ? 'animate-fade-in flex-1 overflow-hidden flex flex-col min-h-0' : 'hidden'}>
                 <Catalogue
                     items={data.catalogue || []}
                     onItemsChange={(catalogueItems) => {
-                        setData({ ...data, catalogue: catalogueItems });
+                        setData((prev: CharacterData) => ({ ...prev, catalogue: catalogueItems }));
+                        onDirtyChange?.(true);
+                    }}
+                    isGlobalCondensed={data.catalogue_is_global_condensed || false}
+                    onIsGlobalCondensedChange={(condensed) => {
+                        setData((prev: CharacterData) => ({ ...prev, catalogue_is_global_condensed: condensed }));
                         onDirtyChange?.(true);
                     }}
                 />

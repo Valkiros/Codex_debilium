@@ -240,6 +240,10 @@ function AppContent() {
       <TitleBar
         onCheckUpdate={handleGlobalUpdateCheck}
         onOpenInfo={() => setShowInfoModal(true)}
+        showActionsMenu={view === 'sheet' && !!selectedCharacterId}
+        onSave={() => sheetRef.current?.save()}
+        onUndo={() => sheetRef.current?.undo()}
+        onRedo={() => sheetRef.current?.redo()}
       />
 
       <header className="p-4 bg-leather text-parchment shadow-md flex justify-between items-center sticky top-0 z-40">
@@ -326,7 +330,7 @@ function AppContent() {
 
         </div>
       </header>
-      <main className="flex-1 overflow-auto bg-parchment-pattern">
+      <main className="flex-1 overflow-y-scroll bg-parchment-pattern">
         {content}
       </main>
 

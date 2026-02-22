@@ -5,10 +5,15 @@ import { VscChromeMinimize, VscChromeMaximize, VscChromeClose, VscChromeRestore 
 interface TitleBarProps {
     onCheckUpdate: () => void;
     onOpenInfo: () => void;
+    showActionsMenu?: boolean;
+    onSave?: () => void;
+    onUndo?: () => void;
+    onRedo?: () => void;
 }
 
-export function TitleBar({ onCheckUpdate, onOpenInfo }: TitleBarProps) {
+export function TitleBar({ onCheckUpdate, onOpenInfo, showActionsMenu, onSave, onUndo, onRedo }: TitleBarProps) {
     const [isHelpOpen, setIsHelpOpen] = useState(false);
+    const [isActionsOpen, setIsActionsOpen] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
 
     // Initialize window state
@@ -53,10 +58,48 @@ export function TitleBar({ onCheckUpdate, onOpenInfo }: TitleBarProps) {
                     <img src="/favicon.ico" alt="Icon" className="w-4 h-4" />
                 </div>
 
+                {/* Actions Menu */}
+                {showActionsMenu && (
+                    <div className="relative h-full flex items-center">
+                        <button
+                            onClick={() => { setIsActionsOpen(!isActionsOpen); setIsHelpOpen(false); }}
+                            className={`px-3 h-full hover:bg-[#333] flex items-center focus:outline-none transition-colors ${isActionsOpen ? 'bg-[#333]' : ''}`}
+                        >
+                            Actions
+                        </button>
+
+                        {isActionsOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsActionsOpen(false)}></div>
+                                <div className="absolute top-full left-0 w-56 bg-[#1f1f1f] border border-[#333] text-[#cccccc] shadow-2xl z-50 flex flex-col py-1">
+                                    <button
+                                        onClick={() => { onSave?.(); setIsActionsOpen(false); }}
+                                        className="px-4 py-2 hover:bg-[#333] text-left flex items-center justify-between w-full"
+                                    >
+                                        Sauvegarder <span className="text-xs text-[#888]">Ctrl+S</span>
+                                    </button>
+                                    <button
+                                        onClick={() => { onUndo?.(); setIsActionsOpen(false); }}
+                                        className="px-4 py-2 hover:bg-[#333] text-left flex items-center justify-between w-full border-t border-[#333]"
+                                    >
+                                        Annuler <span className="text-xs text-[#888]">Ctrl+Z</span>
+                                    </button>
+                                    <button
+                                        onClick={() => { onRedo?.(); setIsActionsOpen(false); }}
+                                        className="px-4 py-2 hover:bg-[#333] text-left flex items-center justify-between w-full"
+                                    >
+                                        Refaire <span className="text-xs text-[#888]">Ctrl+Y</span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+
                 {/* Help Menu */}
                 <div className="relative h-full flex items-center">
                     <button
-                        onClick={() => setIsHelpOpen(!isHelpOpen)}
+                        onClick={() => { setIsHelpOpen(!isHelpOpen); setIsActionsOpen(false); }}
                         className={`px-3 h-full hover:bg-[#333] flex items-center focus:outline-none transition-colors ${isHelpOpen ? 'bg-[#333]' : ''}`}
                     >
                         Aide

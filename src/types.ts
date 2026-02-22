@@ -255,6 +255,7 @@ export interface CharacterData {
     inventory: any[]; // Placeholder for now, will link to existing inventory structure
     custom_sac_items: CustomSacItem[]; // Nouveaux objets personnalisés du sac
     catalogue?: CatalogueItem[]; // Liste d'achats du catalogue
+    catalogue_is_global_condensed?: boolean; // État de la case à cocher vue globale
     ape: ApeEntry[]; // Nouvelle structures pour les APE
     competences: CharacterCompetence[];
     competences_specialisation: CharacterCompetence[];
