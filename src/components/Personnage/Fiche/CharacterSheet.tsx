@@ -1,9 +1,9 @@
 import React, { useEffect, useState, forwardRef, useImperativeHandle, useMemo, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+
 import { invoke } from '@tauri-apps/api/core';
 import { applyCompetenceRules } from "../../../utils/competenceRules";
 import { CharacterHeader } from './CharacterHeader';
-import { LocalSaveButton } from '../../Shared/LocalSaveButton';
+
 import { MovementPanel } from './MovementPanel';
 import { ProtectionsPanel } from '../Equipements/ProtectionsPanel';
 import { MagicStealthPanel } from './MagicStealthPanel';
@@ -42,6 +42,7 @@ interface CharacterSheetProps {
 export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetProps>(({ characterId, onDirtyChange }, ref) => {
     const [data, setDataState] = useState<CharacterData>(INITIAL_DATA);
     const [characterLoading, setCharacterLoading] = useState(true);
+    const [showSaveToast, setShowSaveToast] = useState(false);
     const { refs, gameRules, loading: refLoading } = useRefContext();
     const [referenceCompetences, setReferenceCompetences] = useState<any[]>([]);
     const isInitialLoad = React.useRef(true);
@@ -64,6 +65,12 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 updatedAt: new Date().toISOString()
             });
             onDirtyChange?.(false);
+
+            setShowSaveToast(true);
+            setTimeout(() => {
+                setShowSaveToast(false);
+            }, 3000);
+
             return Promise.resolve();
         } catch (err) {
             console.error("Save failed", err);
@@ -944,39 +951,32 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
     }, [data.status]);
 
     const handleMovementChange = useCallback((movement: any) => {
-        setDataState(prev => ({ ...prev, movement }));
-        if (!isInitialLoad.current) onDirtyChange?.(true);
-    }, [onDirtyChange]);
+        setData(prev => ({ ...prev, movement }));
+    }, []);
 
     const handleMagicChange = useCallback((magic: any) => {
-        setDataState(prev => ({ ...prev, magic }));
-        if (!isInitialLoad.current) onDirtyChange?.(true);
-    }, [onDirtyChange]);
+        setData(prev => ({ ...prev, magic }));
+    }, []);
 
     const handleMalusTeteChange = useCallback((val: number) => {
-        setDataState(prev => ({ ...prev, general: { ...prev.general, malus_tete: val } }));
-        if (!isInitialLoad.current) onDirtyChange?.(true);
-    }, [onDirtyChange]);
+        setData(prev => ({ ...prev, general: { ...prev.general, malus_tete: val } }));
+    }, []);
 
     const handleMalus2emeAtChange = useCallback((val: number) => {
-        setDataState(prev => ({ ...prev, general: { ...prev.general, malus_2eme_at: val } }));
-        if (!isInitialLoad.current) onDirtyChange?.(true);
-    }, [onDirtyChange]);
+        setData(prev => ({ ...prev, general: { ...prev.general, malus_2eme_at: val } }));
+    }, []);
 
     const handleDefenseChange = useCallback((defenses: any) => {
-        setDataState(prev => ({ ...prev, defenses }));
-        if (!isInitialLoad.current) onDirtyChange?.(true);
-    }, [onDirtyChange]);
+        setData(prev => ({ ...prev, defenses }));
+    }, []);
 
     const handleCharacteristicsChange = useCallback((characteristics: any) => {
-        setDataState(prev => ({ ...prev, characteristics }));
-        if (!isInitialLoad.current) onDirtyChange?.(true);
-    }, [onDirtyChange]);
+        setData(prev => ({ ...prev, characteristics }));
+    }, []);
 
     const handleTempModifiersChange = useCallback((temp_modifiers: any) => {
-        setDataState(prev => ({ ...prev, temp_modifiers }));
-        if (!isInitialLoad.current) onDirtyChange?.(true);
-    }, [onDirtyChange]);
+        setData(prev => ({ ...prev, temp_modifiers }));
+    }, []);
 
 
     if (characterLoading || refLoading) {
@@ -1375,13 +1375,14 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 />
             </div>
 
-            {/* Portal for Save Button in Header */}
-            {document.getElementById('header-actions') && createPortal(
-                <LocalSaveButton
-                    onSave={saveCharacter}
-                />,
-                document.getElementById('header-actions')!
-            )}
+            {/* Popup Sauvegarde (Toast) */}
+            <div
+                className={`fixed bottom-8 right-8 bg-leather border border-parchment text-parchment px-6 py-3 rounded-lg shadow-xl font-bold font-sans transition-all duration-300 z-50 flex items-center gap-3 ${showSaveToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+                    }`}
+            >
+                <GiScrollQuill className="w-6 h-6" />
+                <span>Sauvegarde effectuée !</span>
+            </div>
 
             {/* AD Bonus Modal */}
             <AdBonusModal
