@@ -38,6 +38,85 @@ function AppContent() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
+  // --- Affichage State ---
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [visibleTabs, setVisibleTabs] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    // Load global zoom
+    const savedZoom = localStorage.getItem('app_zoom');
+    if (savedZoom) setZoomLevel(parseFloat(savedZoom));
+  }, []);
+
+  useEffect(() => {
+    // Load Affichage Tabs for specific character
+    if (selectedCharacterId) {
+        const savedTabs = localStorage.getItem(`app_visible_tabs_${selectedCharacterId}`);
+        if (savedTabs) {
+            setVisibleTabs(JSON.parse(savedTabs));
+        } else {
+            // Default: all tabs visible if no custom preference yet
+            setVisibleTabs({});
+        }
+    } else {
+        setVisibleTabs({});
+    }
+  }, [selectedCharacterId]);
+
+  useEffect(() => {
+    localStorage.setItem('app_zoom', zoomLevel.toString());
+  }, [zoomLevel]);
+
+  useEffect(() => {
+    if (selectedCharacterId) {
+        localStorage.setItem(`app_visible_tabs_${selectedCharacterId}`, JSON.stringify(visibleTabs));
+    }
+  }, [visibleTabs, selectedCharacterId]);
+
+  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 0.1, 2));
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
+  const handleZoomReset = () => setZoomLevel(1);
+
+  // Wheel / Pinch Zoom listener
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault(); // Empêche le zoom natif du navigateur
+        if (e.deltaY < 0) {
+          setZoomLevel(prev => Math.min(prev + 0.1, 2)); // Zoom in / Pinch out
+        } else if (e.deltaY > 0) {
+          setZoomLevel(prev => Math.max(prev - 0.1, 0.5)); // Zoom out / Pinch in
+        }
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  const handleToggleTab = (tabId: string) => {
+    setVisibleTabs(prev => ({
+      ...prev,
+      [tabId]: prev[tabId] === false ? true : false
+    }));
+  };
+
+  const tabsList = [
+    { id: 'fiche', label: 'Fiche' },
+    { id: 'equipement', label: 'Équipements' },
+    { id: 'sacoches', label: 'Sacoches & Poches' },
+    { id: 'sac', label: 'Sac' },
+    { id: 'catalogue', label: 'Catalogue' },
+    { id: 'status', label: 'État' },
+    { id: 'competences', label: 'Compétences' },
+    { id: 'ape', label: 'APE' },
+    { id: 'richesse', label: 'Richesse' },
+    { id: 'monture', label: 'Montures' },
+    { id: 'familiers', label: 'Familiers' },
+    { id: 'invocations', label: 'Invocations' },
+  ];
+  // -------------------------
+
 
 
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -209,6 +288,7 @@ function AppContent() {
           ref={sheetRef}
           characterId={selectedCharacterId}
           onDirtyChange={setIsDirty}
+          visibleTabs={visibleTabs}
         />
       </ErrorBoundary>
     );
@@ -244,6 +324,13 @@ function AppContent() {
         onSave={() => sheetRef.current?.save()}
         onUndo={() => sheetRef.current?.undo()}
         onRedo={() => sheetRef.current?.redo()}
+        zoomLevel={zoomLevel}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+        visibleTabs={visibleTabs}
+        onToggleTab={handleToggleTab}
+        tabsList={tabsList}
       />
 
       <header className="p-4 bg-leather text-parchment shadow-md flex justify-between items-center sticky top-0 z-40">
@@ -330,7 +417,7 @@ function AppContent() {
 
         </div>
       </header>
-      <main className="flex-1 overflow-y-scroll bg-parchment-pattern">
+      <main className="flex-1 overflow-y-scroll bg-parchment-pattern" style={{ zoom: zoomLevel }}>
         {content}
       </main>
 

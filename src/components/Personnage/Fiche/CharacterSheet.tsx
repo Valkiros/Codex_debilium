@@ -20,12 +20,15 @@ import { SacPanel } from '../Sac/SacPanel';
 import { Catalogue } from '../Catalogue/Catalogue';
 import { APE } from '../APE/APE';
 import { RichessePanel } from '../../Personnage/Richesse/RichessePanel';
-import { CharacterData, Equipement, Characteristics, Origine } from '../../../types';
+import { MonturePanel } from '../Monture/MonturePanel';
+import { FamilierPanel } from '../Familier/FamiliersPanel';
+import { InvocationPanel } from '../Invocation/InvocationsPanel';
+import { CharacterData, Equipement, Characteristics, Origine, Mount, RichesseData } from '../../../types';
 import { INITIAL_DATA } from '../../../constants';
 import { useRefContext } from '../../../context/RefContext';
 import { getAlcoholModifiers } from '../../../utils/alcohol';
 import { getItemWeight } from '../../../utils/sacUtils';
-import { GiScrollQuill, GiChestArmor, GiBelt, GiBackpack, GiHeartBeats, GiOpenBook, GiDna1, GiCoins, GiShop } from 'react-icons/gi';
+import { GiScrollQuill, GiChestArmor, GiBelt, GiBackpack, GiHeartBeats, GiOpenBook, GiDna1, GiCoins, GiShop, GiHorseHead, GiWolfHead, GiGhost } from 'react-icons/gi';
 
 
 export interface CharacterSheetHandle {
@@ -37,9 +40,10 @@ export interface CharacterSheetHandle {
 interface CharacterSheetProps {
     characterId: string;
     onDirtyChange?: (isDirty: boolean) => void;
+    visibleTabs: Record<string, boolean>;
 }
 
-export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetProps>(({ characterId, onDirtyChange }, ref) => {
+export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetProps>(({ characterId, onDirtyChange, visibleTabs }, ref) => {
     const [data, setDataState] = useState<CharacterData>(INITIAL_DATA);
     const [characterLoading, setCharacterLoading] = useState(true);
     const [showSaveToast, setShowSaveToast] = useState(false);
@@ -261,7 +265,15 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             });
     }, [characterId, refs]); // Added refs dependency to trigger repair if refs load after char
 
-    const [activeTab, setActiveTab] = useState<'fiche' | 'equipement' | 'sacoches' | 'sac' | 'catalogue' | 'status' | 'competences' | 'ape' | 'richesse'>('fiche');
+    type TabName = 'fiche' | 'equipement' | 'sacoches' | 'sac' | 'catalogue' | 'competences' | 'status' | 'ape' | 'richesse' | 'monture' | 'familiers' | 'invocations';
+    const [activeTab, setActiveTab] = useState<TabName>('fiche');
+
+    // Auto fallback to 'fiche' if current active tab is hidden
+    React.useEffect(() => {
+        if (activeTab !== 'fiche' && visibleTabs[activeTab] === false) {
+            setActiveTab('fiche');
+        }
+    }, [visibleTabs, activeTab]);
     const [showAdBonusModal, setShowAdBonusModal] = useState(false);
 
     // Check for AD > 12 Bonus Logic
@@ -1117,62 +1129,105 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                 >
                     <GiScrollQuill className="w-8 h-8" />
                 </button>
-                <button
-                    onClick={() => setActiveTab('equipement')}
-                    title="Equipements"
-                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'equipement' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
-                >
-                    <GiChestArmor className="w-8 h-8" />
-                </button>
-                <button
-                    onClick={() => setActiveTab('sacoches')}
-                    title="Sacoches & Poches"
-                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'sacoches' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
-                >
-                    <GiBelt className="w-8 h-8" />
-                </button>
-                <button
-                    onClick={() => setActiveTab('sac')}
-                    title="Sac"
-                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'sac' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
-                >
-                    <GiBackpack className="w-8 h-8" />
-                </button>
-                <button
-                    onClick={() => setActiveTab('catalogue')}
-                    title="Catalogue"
-                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'catalogue' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
-                >
-                    <GiShop className="w-8 h-8" />
-                </button>
-                <button
-                    onClick={() => setActiveTab('status')}
-                    title="État"
-                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'status' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
-                >
-                    <GiHeartBeats className="w-8 h-8" />
-                </button>
-                <button
-                    onClick={() => setActiveTab('competences')}
-                    title="Compétences"
-                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'competences' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
-                >
-                    <GiOpenBook className="w-8 h-8" />
-                </button>
-                <button
-                    onClick={() => setActiveTab('ape')}
-                    title="APE"
-                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'ape' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
-                >
-                    <GiDna1 className="w-8 h-8" />
-                </button>
-                <button
-                    onClick={() => setActiveTab('richesse')}
-                    title="Richesse"
-                    className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'richesse' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
-                >
-                    <GiCoins className="w-8 h-8" />
-                </button>
+                {visibleTabs.equipement !== false && (
+                    <button
+                        onClick={() => setActiveTab('equipement')}
+                        title="Equipements"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'equipement' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiChestArmor className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.sacoches !== false && (
+                    <button
+                        onClick={() => setActiveTab('sacoches')}
+                        title="Sacoches & Poches"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'sacoches' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiBelt className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.sac !== false && (
+                    <button
+                        onClick={() => setActiveTab('sac')}
+                        title="Sac"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'sac' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiBackpack className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.catalogue !== false && (
+                    <button
+                        onClick={() => setActiveTab('catalogue')}
+                        title="Catalogue"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'catalogue' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiShop className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.status !== false && (
+                    <button
+                        onClick={() => setActiveTab('status')}
+                        title="État"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'status' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiHeartBeats className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.competences !== false && (
+                    <button
+                        onClick={() => setActiveTab('competences')}
+                        title="Compétences"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'competences' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiOpenBook className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.ape !== false && (
+                    <button
+                        onClick={() => setActiveTab('ape')}
+                        title="APE"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'ape' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiDna1 className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.richesse !== false && (
+                    <button
+                        onClick={() => setActiveTab('richesse')}
+                        title="Richesse"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'richesse' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiCoins className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.monture !== false && (
+                    <button
+                        onClick={() => setActiveTab('monture')}
+                        title="Montures"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'monture' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiHorseHead className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.familiers !== false && (
+                    <button
+                        onClick={() => setActiveTab('familiers')}
+                        title="Familiers"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'familiers' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiWolfHead className="w-8 h-8" />
+                    </button>
+                )}
+                {visibleTabs.invocations !== false && (
+                    <button
+                        onClick={() => setActiveTab('invocations')}
+                        title="Invocations"
+                        className={`px-6 py-2 font-bold text-lg transition-colors ${activeTab === 'invocations' ? 'bg-leather text-parchment' : 'text-leather hover:bg-leather hover:text-parchment hover:bg-opacity-10'}`}
+                    >
+                        <GiGhost className="w-8 h-8" />
+                    </button>
+                )}
             </div>
 
             <div className={activeTab === 'fiche' ? 'space-y-6 animate-fade-in' : 'hidden'}>
@@ -1362,22 +1417,44 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
             </div>
 
             {/* Richesse Tab */}
-            <div className={activeTab === 'richesse' ? 'animate-fade-in' : 'hidden'}>
-                <RichessePanel
-                    richesse={data.richesse || {
-                        capacite_bourse: 0,
-                        status_points: { honneurs: 0, sm_sot: 0, mc_mot: 0 },
-                        monnaies: {
-                            beryllium: { sur_soi: 0, banque: 0, maison: 0, commun: 0 },
-                            thritil: { sur_soi: 0, banque: 0, maison: 0, commun: 0 },
-                            or: { sur_soi: 0, banque: 0, maison: 0, commun: 0 },
-                            argent: { sur_soi: 0, banque: 0, maison: 0, commun: 0 },
-                            cuivre: { sur_soi: 0, banque: 0, maison: 0, commun: 0 }
-                        }
-                    }}
-                    onChange={(newRichesse) => setData({ ...data, richesse: newRichesse })}
-                />
-            </div>
+            {visibleTabs.richesse !== false && (
+                <div className={activeTab === 'richesse' ? 'animate-fade-in' : 'hidden'}>
+                    <RichessePanel
+                        richesse={data.richesse || INITIAL_DATA.richesse}
+                        onChange={(richesse: RichesseData) => setData({ ...data, richesse })}
+                    />
+                </div>
+            )}
+
+            {/* Monture Tab */}
+            {visibleTabs.monture !== false && (
+                <div className={activeTab === 'monture' ? 'animate-fade-in' : 'hidden'}>
+                    <MonturePanel
+                        mounts={data.mounts || []}
+                        onMountsChange={(newMounts) => setData({ ...data, mounts: newMounts })}
+                    />
+                </div>
+            )}
+
+            {/* Familiers Tab */}
+            {visibleTabs.familiers !== false && (
+                <div className={activeTab === 'familiers' ? 'animate-fade-in' : 'hidden'}>
+                    <FamilierPanel
+                        familiers={data.familiers || []}
+                        onFamiliersChange={(newFamiliers: Mount[]) => setData({ ...data, familiers: newFamiliers })}
+                    />
+                </div>
+            )}
+
+            {/* Invocations Tab */}
+            {visibleTabs.invocations !== false && (
+                <div className={activeTab === 'invocations' ? 'animate-fade-in' : 'hidden'}>
+                    <InvocationPanel
+                        invocations={data.invocations || []}
+                        onInvocationsChange={(newInvocations: Mount[]) => setData({ ...data, invocations: newInvocations })}
+                    />
+                </div>
+            )}
 
             {/* Popup Sauvegarde (Toast) */}
             <div
@@ -1396,4 +1473,5 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
         </div>
     );
 });
+
 CharacterSheet.displayName = 'CharacterSheet';

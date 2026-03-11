@@ -262,6 +262,9 @@ export interface CharacterData {
     competences_sous_specialisation: CharacterCompetence[];
     status: CharacterStatus;
     richesse: RichesseData; // Ajout Richesse
+    mounts: Mount[];
+    familiers: Mount[];
+    invocations: Mount[]; // Nouvelle structure pour les montures
 }
 
 // Interfaces pour la nouvelle page "État & Besoins"
@@ -323,6 +326,35 @@ export interface RichesseData {
     capacite_bourse: number;
     status_points: RichesseStatus;
     monnaies: RichesseMonnaies;
+}
+
+// Interface pour les montures
+export interface Mount {
+    uid: string; // ID unique pour React key (uuid)
+    nom: string;
+    pv_current: number;
+    pv_max: number;
+    courage: number;
+    intelligence: number;
+    charisme: number;
+    adresse: number;
+    force: number;
+    esquive: number;
+    perception: number;
+    attaque: number;
+    parade: number;
+    rm: number;
+    mvt_marche: number;
+    mvt_course: number;
+    mvt_voyage: number;
+    prix: string;
+    entretien: string;
+    description: string;
+    competences: string;
+    bonus_cavalier: string;
+    lieux: string;
+    charge_max: string;
+    at_speciales: string;
 }
 
 // Interface pour le résumé du personnage

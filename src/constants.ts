@@ -105,7 +105,10 @@ export const INITIAL_DATA: CharacterData = {
             argent: { sur_soi: 0, banque: 0, maison: 0, commun: 0 },
             cuivre: { sur_soi: 0, banque: 0, maison: 0, commun: 0 }
         }
-    }
+    },
+    mounts: [],
+    familiers: [],
+    invocations: []
 };
 
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';

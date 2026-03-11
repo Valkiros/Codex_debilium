@@ -9,11 +9,22 @@ interface TitleBarProps {
     onSave?: () => void;
     onUndo?: () => void;
     onRedo?: () => void;
+
+    // Affichage props
+    zoomLevel: number;
+    onZoomIn: () => void;
+    onZoomOut: () => void;
+    onZoomReset: () => void;
+    visibleTabs: Record<string, boolean>;
+    onToggleTab: (tabId: string) => void;
+    tabsList: { id: string, label: string }[];
 }
 
-export function TitleBar({ onCheckUpdate, onOpenInfo, showActionsMenu, onSave, onUndo, onRedo }: TitleBarProps) {
+export function TitleBar({ onCheckUpdate, onOpenInfo, showActionsMenu, onSave, onUndo, onRedo, zoomLevel, onZoomIn, onZoomOut, onZoomReset, visibleTabs, onToggleTab, tabsList }: TitleBarProps) {
     const [isHelpOpen, setIsHelpOpen] = useState(false);
     const [isActionsOpen, setIsActionsOpen] = useState(false);
+    const [isAffichageOpen, setIsAffichageOpen] = useState(false);
+    const [isTabsMenuOpen, setIsTabsMenuOpen] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
 
     // Initialize window state
@@ -62,7 +73,7 @@ export function TitleBar({ onCheckUpdate, onOpenInfo, showActionsMenu, onSave, o
                 {showActionsMenu && (
                     <div className="relative h-full flex items-center">
                         <button
-                            onClick={() => { setIsActionsOpen(!isActionsOpen); setIsHelpOpen(false); }}
+                            onClick={() => { setIsActionsOpen(!isActionsOpen); setIsHelpOpen(false); setIsAffichageOpen(false); setIsTabsMenuOpen(false); }}
                             className={`px-3 h-full hover:bg-[#333] flex items-center focus:outline-none transition-colors ${isActionsOpen ? 'bg-[#333]' : ''}`}
                         >
                             Actions
@@ -96,10 +107,72 @@ export function TitleBar({ onCheckUpdate, onOpenInfo, showActionsMenu, onSave, o
                     </div>
                 )}
 
+                {/* Affichage Menu */}
+                <div className="relative h-full flex items-center">
+                    <button
+                        onClick={() => { setIsAffichageOpen(!isAffichageOpen); setIsTabsMenuOpen(false); setIsActionsOpen(false); setIsHelpOpen(false); }}
+                        className={`px-3 h-full hover:bg-[#333] flex items-center focus:outline-none transition-colors ${isAffichageOpen ? 'bg-[#333]' : ''}`}
+                    >
+                        Affichage
+                    </button>
+
+                    {isAffichageOpen && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setIsAffichageOpen(false)}></div>
+                            <div className="absolute top-full left-0 w-64 bg-[#1f1f1f] border border-[#333] text-[#cccccc] shadow-2xl z-50 flex flex-col py-1">
+                                <button onClick={() => { onZoomReset(); setIsAffichageOpen(false); }} className="px-4 py-2 hover:bg-[#333] text-left flex items-center justify-between w-full">
+                                    <span>Zoom 100%</span>
+                                    <span className="text-xs text-[#888]">{Math.round(zoomLevel * 100)}%</span>
+                                </button>
+                                <button onClick={() => { onZoomIn(); setIsAffichageOpen(false); }} className="px-4 py-2 hover:bg-[#333] text-left w-full">Zoom +</button>
+                                <button onClick={() => { onZoomOut(); setIsAffichageOpen(false); setIsTabsMenuOpen(false); }} className="px-4 py-2 hover:bg-[#333] text-left w-full border-b border-[#333]">Zoom -</button>
+                                
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); setIsTabsMenuOpen(!isTabsMenuOpen); }} 
+                                    className="px-4 py-2 hover:bg-[#333] text-left flex items-center justify-between w-full"
+                                >
+                                    <span>Onglets</span>
+                                    <span className="text-xs text-[#888]">{isTabsMenuOpen ? "▼" : "▶"}</span>
+                                </button>
+
+                                {isTabsMenuOpen && (
+                                    <div className="bg-[#141414] py-1 border-t border-[#333]">
+                                        {tabsList.map(tab => {
+                                            const isVisible = visibleTabs[tab.id] !== false;
+                                            const isMandatory = tab.id === 'fiche';
+
+                                            return (
+                                                <button
+                                                    key={tab.id}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // Don't close menu immediately to allow multiple toggles, or close? The user might want to toggle multiple.
+                                                        if (!isMandatory) onToggleTab(tab.id);
+                                                    }}
+                                                    className={`px-4 py-2 hover:bg-[#333] text-left flex items-center gap-3 w-full ${isMandatory ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    title={isMandatory ? "Cet onglet ne peut pas être masqué" : ""}
+                                                >
+                                                    <div className="w-4 h-4 flex items-center justify-center">
+                                                        {isVisible && (
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    {tab.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+
                 {/* Help Menu */}
                 <div className="relative h-full flex items-center">
                     <button
-                        onClick={() => { setIsHelpOpen(!isHelpOpen); setIsActionsOpen(false); }}
+                        onClick={() => { setIsHelpOpen(!isHelpOpen); setIsActionsOpen(false); setIsAffichageOpen(false); setIsTabsMenuOpen(false); }}
                         className={`px-3 h-full hover:bg-[#333] flex items-center focus:outline-none transition-colors ${isHelpOpen ? 'bg-[#333]' : ''}`}
                     >
                         Aide
