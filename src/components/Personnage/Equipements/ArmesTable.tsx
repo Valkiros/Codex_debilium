@@ -229,7 +229,7 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
 
                                             // Check for excluded types
                                             const type = r?.type || getRefCategory(item.refId) || item.equipement_type || '';
-                                            const excludedTypes = ['Arbalète', 'Pistolet', 'Fusil', 'Arme de siège', 'Engins explosifs', 'Engin incendiaire', 'Arme à projectiles'];
+                                            const excludedTypes = ['Arbalète', 'Pistolet', 'Fusil', 'Arme de siège', 'Engins explosifs', 'Engin incendiaire'];
                                             const isExcluded = excludedTypes.includes(type);
 
                                             const bonusFo = isExcluded ? 0 : rawBonusFo;
@@ -250,7 +250,7 @@ export const ArmesTable: React.FC<ArmesTableProps> = ({ items, onItemsChange, re
 
                                             // Check for excluded types
                                             const type = r?.type || getRefCategory(item.refId) || item.equipement_type || '';
-                                            const excludedTypes = ['Arbalète', 'Pistolet', 'Fusil', 'Arme de siège', 'Engins explosifs', 'Engin incendiaire', 'Arme à projectiles'];
+                                            const excludedTypes = ['Arbalète', 'Pistolet', 'Fusil', 'Arme de siège', 'Engins explosifs', 'Engin incendiaire'];
                                             const isExcluded = excludedTypes.includes(type);
 
                                             const bonusFo = isExcluded ? 0 : rawBonusFo;

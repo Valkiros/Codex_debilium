@@ -272,7 +272,7 @@ const CharacteristicsPanelComponent: React.FC<CharacteristicsPanelProps> = ({
                                         // Check for excluded types
                                         // Try to find type in details (new), direct (legacy), or fallback
                                         const type = (refItem as any)?.details?.type || (refItem as any)?.type || item.equipement_type || '';
-                                        const excludedTypes = ['Arbalète', 'Pistolet', 'Fusil', 'Arme de siège', 'Engins explosifs', 'Engin incendiaire', 'Arme à projectiles'];
+                                        const excludedTypes = ['Arbalète', 'Pistolet', 'Fusil', 'Arme de siège', 'Engins explosifs', 'Engin incendiaire'];
                                         const isExcluded = excludedTypes.includes(type);
 
                                         const bonusFo = isExcluded ? 0 : rawBonusFo;

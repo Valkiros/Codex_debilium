@@ -754,45 +754,49 @@ export const CharacterSheet = forwardRef<CharacterSheetHandle, CharacterSheetPro
                     totals.magique.details.components.push({ label: refItem?.nom || item.nom, value: valMag });
                 }
 
-                // Check char_values for Discretion and Magic Bonuses
-                if (item.char_values) {
+                // Check Reference Characteristics for Discretion, Magic, and Movement Bonuses
+                const caracs = refItem?.caracteristiques || refItem?.raw?.caracteristiques;
+                if (caracs) {
                     // Discretion
-                    const discKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'discretion' || k.toLowerCase() === 'discrétion');
+                    const discKey = Object.keys(caracs).find(k => k.toLowerCase() === 'discretion' || k.toLowerCase() === 'discrétion');
                     if (discKey) {
-                        const val = item.char_values[discKey] || 0;
-                        totals.discretion.value += val;
-                        totals.discretion.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        const val = parseInt(String(caracs[discKey]), 10) || 0;
+                        if (val !== 0) {
+                            totals.discretion.value += val;
+                            totals.discretion.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        }
                     }
 
                     // Magie Physique (mag_phy)
-                    const magPhyKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'mag_phy' || k.toLowerCase() === 'magie_physique');
+                    const magPhyKey = Object.keys(caracs).find(k => k.toLowerCase() === 'mag_phy' || k.toLowerCase() === 'magie_physique');
                     if (magPhyKey) {
-                        const val = item.char_values[magPhyKey] || 0;
-                        totals.magie_physique.value += val;
-                        totals.magie_physique.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        const val = parseInt(String(caracs[magPhyKey]), 10) || 0;
+                        if (val !== 0) {
+                            totals.magie_physique.value += val;
+                            totals.magie_physique.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        }
                     }
 
                     // Magie Psychique (mag_psy)
-                    const magPsyKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'mag_psy' || k.toLowerCase() === 'magie_psychique');
+                    const magPsyKey = Object.keys(caracs).find(k => k.toLowerCase() === 'mag_psy' || k.toLowerCase() === 'magie_psychique');
                     if (magPsyKey) {
-                        const val = item.char_values[magPsyKey] || 0;
-                        totals.magie_psychique.value += val;
-                        totals.magie_psychique.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        const val = parseInt(String(caracs[magPsyKey]), 10) || 0;
+                        if (val !== 0) {
+                            totals.magie_psychique.value += val;
+                            totals.magie_psychique.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        }
                     }
 
                     // Resistance Magique (rm)
-                    const rmKey = Object.keys(item.char_values).find(k => k.toLowerCase() === 'rm' || k.toLowerCase() === 'resistance_magique' || k.toLowerCase() === 'résistance_magique');
+                    const rmKey = Object.keys(caracs).find(k => k.toLowerCase() === 'rm' || k.toLowerCase() === 'resistance_magique' || k.toLowerCase() === 'résistance_magique');
                     if (rmKey) {
-                        const val = item.char_values[rmKey] || 0;
-                        totals.resistance_magique.value += val;
-                        totals.resistance_magique.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        const val = parseInt(String(caracs[rmKey]), 10) || 0;
+                        if (val !== 0) {
+                            totals.resistance_magique.value += val;
+                            totals.resistance_magique.details.components.push({ label: refItem?.nom || item.nom, value: val });
+                        }
                     }
-                }
 
-                // Check Reference Characteristics for Movement Bonuses (mvt, marche, course)
-                // We check both raw characteristics and updated schema
-                const caracs = refItem?.caracteristiques || refItem?.raw?.caracteristiques;
-                if (caracs) {
                     // Generic MVT (applies to both Marche and Course)
                     if (caracs.mvt) {
                         const val = parseInt(String(caracs.mvt), 10);
